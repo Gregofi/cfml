@@ -21,6 +21,6 @@ void write_chunk(chunk_t *chunk, uint8_t data) {
 
 void free_chunk(chunk_t *chunk) {
     free(chunk->bytecode);
-    free_values(&chunk->pool);
+    free_constant_pool(&chunk->pool);
     init_chunk(chunk);
 }

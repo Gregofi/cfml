@@ -67,25 +67,11 @@ typedef struct {
     };
 } constant_t;
 
-obj_string_t* build_obj_string(size_t len, const char* ptr) {
-    obj_string_t* new_string = (obj_string_t*)malloc(sizeof(*new_string) 
-                                    + len * sizeof(char) + 1);
-    strncpy(new_string->data, ptr, len);
-    new_string->data[new_string->length + 1] = '\0';
-    obj_t t = {.type = OBJ_STRING};
-    new_string->obj = t;
-    new_string->length = len;
-    return new_string;
-}
+obj_string_t* build_obj_string(size_t len, const char* ptr);
 
 /// Allocates function object on heap and returns pointer to it, fields of function are zero initialized
 /// with exception of object, which is initialized correctly.
-obj_function_t* build_obj_fun() {
-    obj_function_t* fun = (obj_function_t*)malloc(sizeof(*fun));
-    memset(fun, 0, sizeof(*fun));
-    fun->obj = (obj_t){.type = OBJ_FUNCTION};
-    return fun;
-}
+obj_function_t* build_obj_fun();
 
 // 'Constructor' functions for values.
 #define INTEGER_VAL(value) ((constant_t){TYPE_INTEGER, {.num = (value)}})
@@ -117,7 +103,7 @@ obj_function_t* build_obj_fun() {
 #define IS_FUNCTION(value) isObjType(value, OBJ_FUN)
 #define AS_FUNCTION(value) (((obj_function_t*)AS_OBJ(value)))
 
-static inline is_obj_type(constant_t val, obj_type_t type) {
+static inline bool is_obj_type(constant_t val, obj_type_t type) {
     return IS_OBJ(val) && AS_OBJ(val)->type == type;
 }
 
@@ -129,6 +115,7 @@ typedef struct {
 
 /// Initalizes constant_pool_t with zero values.
 void init_constant_pool(constant_pool_t* pool);
+void free_constant_pool(constant_pool_t* pool);
 
 /// Adds contant to constant array and returns index to it.
 size_t add_constant(constant_pool_t* pool, constant_t constant);
