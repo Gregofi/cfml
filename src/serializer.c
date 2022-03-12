@@ -3,6 +3,7 @@
 #include "include/serializer.h"
 #include "include/bytecode.h"
 #include "include/constant.h"
+#include "include/memory.h"
 
 uint8_t* read_file(const char* name) {
     size_t size = 0, bytes_read = 0;
@@ -64,6 +65,7 @@ size_t parse_bytecode(uint8_t* bytecode, size_t instruction_count) {
             case OP_SET_FIELD:
                 size += 3;
                 break;
+            // four byte instruction
             case OP_CALL_FUNCTION:
             case OP_PRINT:
             case OP_CALL_METHOD:
@@ -77,9 +79,6 @@ size_t parse_bytecode(uint8_t* bytecode, size_t instruction_count) {
 }
 
 static void parse_constant_pool(uint8_t *file, chunk_t *chunk) {
-#define READ_4BYTES(file) (*((uint32_t*)((file))))
-#define READ_2BYTES(file) (*((uint16_t*)((file))))
-#define READ_BYTE(file) (*((uint8_t*)((file))))
     // Read size of constant pool
     uint16_t size = *file << 8 & *(file + 1);
     file += 2;
@@ -129,8 +128,4 @@ static void parse_constant_pool(uint8_t *file, chunk_t *chunk) {
         }
         size -= 1;
     }
-
-#undef READ_4BYTES
-#undef READ_2BYTES
-#undef READ_1_BYTES
 }
