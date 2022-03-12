@@ -16,3 +16,8 @@ size_t add_constant(constant_pool_t* pool, constant_t constant) {
     pool->data[pool->len++] = constant;
     return pool->len - 1;
 }
+
+void free_constant_pool(constant_pool_t* pool) {
+    free(pool->data);
+    init_constant_pool(pool);
+}

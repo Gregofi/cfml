@@ -18,3 +18,9 @@ void write_chunk(chunk_t *chunk, uint8_t data) {
 
     chunk->bytecode[chunk->size++] = data;
 }
+
+void free_chunk(chunk_t *chunk) {
+    free(chunk->bytecode);
+    free_values(&chunk->pool);
+    init_chunk(chunk);
+}
