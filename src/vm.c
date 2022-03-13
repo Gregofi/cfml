@@ -55,7 +55,6 @@ bool interpret_print(vm_t* vm) {
     }
     const char* str = AS_CSTRING(obj);
     uint8_t arg_count = READ_BYTE_IP(vm);
-    printf("%s", str);
     for(const char* ptr = str; *ptr != '\0'; ptr ++) {
         if (*ptr == '~') {
             constant_t val = pop(&vm->op_stack);
@@ -75,6 +74,31 @@ bool interpret_print(vm_t* vm) {
                     return false;
             }
             arg_count -= 1;
+        } else if (*ptr == '\\') {
+            ptr += 1;
+            switch (*ptr) {
+                case '\\':
+                    putchar('\\');
+                    break;
+                case 'n':
+                    putchar('\n');
+                    break;
+                case 'r':
+                    putchar('\r');
+                    break;
+                case 't':
+                    putchar('\t');
+                    break;
+                case '~':
+                    putchar('~');
+                    break;
+                case '"':
+                    putchar('"');
+                    break;
+                default:
+                    fprintf(stderr, "Unknown escape sequence '\\%c'.\n", *ptr);
+                    break;
+            }
         } else {
             putchar(*ptr);
         }
