@@ -7,7 +7,9 @@
 
 void init_stack(op_stack_t* stack)
 {
-    memset(stack, 0, sizeof(*stack));
+    stack->capacity = 0;
+    stack->size = 0;
+    stack->data = NULL;
 }
 
 void free_stack(op_stack_t* stack)
@@ -19,7 +21,7 @@ void push(op_stack_t* stack, constant_t c)
 {
     if (stack->size >= stack->capacity) {
         stack->capacity = NEW_CAPACITY(stack->capacity);
-        stack->data = realloc(stack->data, stack->capacity);
+        stack->data = realloc(stack->data, stack->capacity * sizeof(*stack->data));
     }
 
     stack->data[stack->size++] = c;
@@ -50,7 +52,7 @@ void free_vm(vm_t* vm)
 bool interpret_print(vm_t* vm) {
     constant_t obj = vm->bytecode.pool.data[READ_WORD_IP(vm)];
     if (!IS_STRING(obj)) {
-        fprintf(stderr, "Print keyword accepts only string as it's first argument.");
+        fprintf(stderr, "Print keyword accepts only string as it's first argument.\n");
         return false;
     }
     const char* str = AS_CSTRING(obj);
