@@ -16,5 +16,6 @@ int main(int argc, const char* argv[]) {
         fprintf(stderr, "Fatal: Runtime error occured.\n");
         exit(22);
     }
+    free_vm(&vm);
     return 0;
 }

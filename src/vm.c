@@ -55,6 +55,7 @@ bool interpret_print(vm_t* vm) {
     }
     const char* str = AS_CSTRING(obj);
     uint8_t arg_count = READ_BYTE_IP(vm);
+    printf("%s", str);
     for(const char* ptr = str; *ptr != '\0'; ptr ++) {
         if (*ptr == '~') {
             constant_t val = pop(&vm->op_stack);
@@ -89,7 +90,7 @@ bool interpret_print(vm_t* vm) {
 
 interpret_result_t interpret(vm_t vm)
 {
-    for(;;) {
+    for(;(size_t)(vm.ip - vm.bytecode.bytecode) < vm.bytecode.size;) {
         switch(READ_BYTE_IP(&vm)) {
             case OP_RETURN:
                 return INTERPRET_OK;
@@ -125,6 +126,7 @@ interpret_result_t interpret(vm_t vm)
 
         }
     }
+    return INTERPRET_OK;
 }
 
 #undef READ_BYTE_IP

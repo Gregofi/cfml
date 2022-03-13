@@ -18,6 +18,12 @@ size_t add_constant(constant_pool_t* pool, constant_t constant) {
 }
 
 void free_constant_pool(constant_pool_t* pool) {
+    for(size_t i = 0; i < pool->len; ++ i) {
+        if (pool->data[i].type != TYPE_OBJECT)
+            continue;
+
+        free(AS_STRING(pool->data[i]));
+    }
     free(pool->data);
     init_constant_pool(pool);
 }

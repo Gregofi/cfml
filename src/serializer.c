@@ -147,10 +147,12 @@ void parse(vm_t* vm, const char* name) {
     chunk_t chunk;
     init_chunk(&chunk);
     uint8_t *file = read_file(name);
-    file = parse_constant_pool(file, &chunk);
+    uint8_t *file_ptr = file;
+    file_ptr = parse_constant_pool(file_ptr, &chunk);
     // For now just skip globals
-    file += READ_2BYTES(file) + 2;
-    uint16_t entry_point = READ_2BYTES(file);
+    file_ptr += READ_2BYTES(file_ptr) + 2;
+    uint16_t entry_point = READ_2BYTES(file_ptr);
     vm->bytecode = chunk;
     vm->ip = &chunk.bytecode[AS_FUNCTION((chunk.pool.data[entry_point]))->entry_point];
+    free(file);
 }
