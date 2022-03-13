@@ -45,8 +45,8 @@ void init_vm(vm_t* vm)
 
 void free_vm(vm_t* vm)
 {
-    free_chunk(&vm->bytecode);
     free_stack(&vm->op_stack);
+    free_chunk(&vm->bytecode);
     init_vm(vm);
 }
 
@@ -120,20 +120,20 @@ bool interpret_print(vm_t* vm) {
     return true;
 }
 
-interpret_result_t interpret(vm_t vm)
+interpret_result_t interpret(vm_t* vm)
 {
-    for (;(size_t)(vm.ip - vm.bytecode.bytecode) < vm.bytecode.size;) {
-        switch (READ_BYTE_IP(&vm)) {
+    for (;(size_t)(vm->ip - vm->bytecode.bytecode) < vm->bytecode.size;) {
+        switch (READ_BYTE_IP(vm)) {
             case OP_RETURN:
                 return INTERPRET_OK;
             case OP_LABEL:
                 break;
             case OP_DROP:
-                pop(&vm.op_stack);
+                pop(&vm->op_stack);
                 break;
             case OP_LITERAL: {
-                uint16_t index = READ_WORD_IP(&vm);
-                push(&vm.op_stack, vm.bytecode.pool.data[index]);
+                uint16_t index = READ_WORD_IP(vm);
+                push(&vm->op_stack, vm->bytecode.pool.data[index]);
                 break;
             }
             case OP_GET_LOCAL:
@@ -147,7 +147,7 @@ interpret_result_t interpret(vm_t vm)
             case OP_SET_FIELD:
             case OP_CALL_FUNCTION:
             case OP_PRINT:
-                if (!interpret_print(&vm)) {
+                if (!interpret_print(vm)) {
                     return INTERPRET_RUNTIME_ERROR;
                 }
                 break;

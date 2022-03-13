@@ -27,4 +27,4 @@ constant_t pop();
 
 void init_vm(vm_t* vm);
 void free_vm(vm_t* vm);
-interpret_result_t interpret(vm_t vm);
+interpret_result_t interpret(vm_t* vm);
