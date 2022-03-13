@@ -29,6 +29,10 @@ void push(op_stack_t* stack, constant_t c)
 
 constant_t pop(op_stack_t* stack)
 {
+    if (stack->size == 0) {
+        fprintf(stderr, "Popping from empty stack.");
+        exit(77);
+    }
     return stack->data[--stack->size];
 }
 
@@ -111,13 +115,15 @@ bool interpret_print(vm_t* vm) {
         return false;
     }
 
+    push(&vm->op_stack, NULL_VAL);
+
     return true;
 }
 
 interpret_result_t interpret(vm_t vm)
 {
-    for(;(size_t)(vm.ip - vm.bytecode.bytecode) < vm.bytecode.size;) {
-        switch(READ_BYTE_IP(&vm)) {
+    for (;(size_t)(vm.ip - vm.bytecode.bytecode) < vm.bytecode.size;) {
+        switch (READ_BYTE_IP(&vm)) {
             case OP_RETURN:
                 return INTERPRET_OK;
             case OP_LABEL:
@@ -128,6 +134,7 @@ interpret_result_t interpret(vm_t vm)
             case OP_LITERAL: {
                 uint16_t index = READ_WORD_IP(&vm);
                 push(&vm.op_stack, vm.bytecode.pool.data[index]);
+                break;
             }
             case OP_GET_LOCAL:
             case OP_SET_LOCAL:
