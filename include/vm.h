@@ -14,7 +14,7 @@ typedef struct {
 } op_stack_t;
 
 typedef struct {
-    chunk_t* bytecode;
+    chunk_t bytecode;
     // There can't be any writes to bytecode after this address is set.
     uint8_t* ip;
     op_stack_t op_stack;
@@ -27,4 +27,4 @@ constant_t pop();
 
 void init_vm(vm_t* vm);
 void free_vm(vm_t* vm);
-interpret_result_t interpret(chunk_t* chunk);
+interpret_result_t interpret(vm_t vm);

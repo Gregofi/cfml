@@ -65,7 +65,7 @@ size_t dissasemble_instruction(chunk_t* chunk, size_t offset) {
 
 void dissasemble_chunk(chunk_t *chunk, const char* name) {
     printf("=== %s ===\n", name);
-    for(size_t idx = chunk->bytecode; idx < chunk->size;) {
+    for(size_t idx = 0; idx < chunk->size;) {
         idx += dissasemble_instruction(chunk, idx);
     }
 }

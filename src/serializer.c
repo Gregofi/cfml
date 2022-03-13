@@ -4,8 +4,9 @@
 #include "include/bytecode.h"
 #include "include/constant.h"
 #include "include/memory.h"
+#include "include/vm.h"
 
-uint8_t* read_file(const char* name) {
+static uint8_t* read_file(const char* name) {
     size_t size = 0, bytes_read = 0;
     uint8_t* buffer = NULL;
     FILE *f = fopen(name, "rb");
@@ -17,6 +18,7 @@ uint8_t* read_file(const char* name) {
 
     fseek(f, 0, SEEK_END);
     size = ftell(f);
+    rewind(f);
 
     buffer = (uint8_t*)malloc(size + 1);
     if (buffer == NULL) {
@@ -38,10 +40,10 @@ READ_ERROR:
 MALLOC_ERROR:
     fclose(f);
 FILE_ERROR:
-    exit(1);
+    exit(33);
 }
 
-size_t parse_bytecode(uint8_t* bytecode, size_t instruction_count) {
+static size_t parse_bytecode(uint8_t* bytecode, size_t instruction_count, chunk_t* chunk) {
     size_t size = 0;
     while (instruction_count != 0) {
         switch (*(bytecode + size)) {
@@ -50,6 +52,7 @@ size_t parse_bytecode(uint8_t* bytecode, size_t instruction_count) {
             case OP_ARRAY:
             case OP_DROP:
                 size += 1;
+                write_chunk(chunk, *bytecode);
                 break;
             // three byte instructions
             case OP_LITERAL:
@@ -63,12 +66,19 @@ size_t parse_bytecode(uint8_t* bytecode, size_t instruction_count) {
             case OP_OBJECT:
             case OP_GET_FIELD:
             case OP_SET_FIELD:
+                write_chunk(chunk, *bytecode);
+                write_chunk(chunk, *(bytecode + 1));
+                write_chunk(chunk, *(bytecode + 2));
                 size += 3;
                 break;
             // four byte instruction
             case OP_CALL_FUNCTION:
             case OP_PRINT:
             case OP_CALL_METHOD:
+                write_chunk(chunk, *bytecode);
+                write_chunk(chunk, *(bytecode + 1));
+                write_chunk(chunk, *(bytecode + 2));
+                write_chunk(chunk, *(bytecode + 3));
                 size += 4;
                 break;
             default:
@@ -76,13 +86,14 @@ size_t parse_bytecode(uint8_t* bytecode, size_t instruction_count) {
         }
         instruction_count -= 1;
     }
+    return size;
 }
 
-static void parse_constant_pool(uint8_t *file, chunk_t *chunk) {
+static uint8_t* parse_constant_pool(uint8_t *file, chunk_t *chunk) {
     // Read size of constant pool
-    uint16_t size = *file << 8 & *(file + 1);
+    uint16_t size = READ_2BYTES(file);
     file += 2;
-    
+
     while (size != 0) {
         switch (*file) {
             case CD_BOOLEAN:
@@ -101,6 +112,7 @@ static void parse_constant_pool(uint8_t *file, chunk_t *chunk) {
                 size_t length = READ_4BYTES(file + 1);
                 const char* str = (char*)(file + 5);
                 add_constant(&chunk->pool, OBJ_STRING_VAL(length, str));
+                file += 5 + length;
                 break;
             }
             case CD_METHOD: {
@@ -113,10 +125,10 @@ static void parse_constant_pool(uint8_t *file, chunk_t *chunk) {
 
                 uint32_t bytecode_length = READ_4BYTES(file + 6);
                 // Read the bytecode and update the length to bytes instead of instruction count
-                bytecode_length = parse_bytecode(file + 10, bytecode_length);
-                // Copy the bytecode to the chunk
-                memcpy(chunk->bytecode, file + 10, bytecode_length);
+                bytecode_length = parse_bytecode(file + 10, bytecode_length, chunk);
                 fun_obj->length = bytecode_length;
+                file += 10 + bytecode_length;
+                add_constant(&chunk->pool, fun);
 
                 break;
             }
@@ -128,4 +140,17 @@ static void parse_constant_pool(uint8_t *file, chunk_t *chunk) {
         }
         size -= 1;
     }
+    return file;
+}
+
+void parse(vm_t* vm, const char* name) {
+    chunk_t chunk;
+    init_chunk(&chunk);
+    uint8_t *file = read_file(name);
+    file = parse_constant_pool(file, &chunk);
+    // For now just skip globals
+    file += READ_2BYTES(file) + 2;
+    uint16_t entry_point = READ_2BYTES(file);
+    vm->bytecode = chunk;
+    vm->ip = &chunk.bytecode[AS_FUNCTION((chunk.pool.data[entry_point]))->entry_point];
 }

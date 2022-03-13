@@ -1,10 +1,11 @@
 #pragma once
 
-#include <bits/types/FILE.h>
+#include "include/constant.h"
+#include "include/bytecode.h"
+#include "include/vm.h"
+
 #include <stddef.h>
 #include <stdio.h>
-#include "constant.h"
-#include "bytecode.h"
 
 typedef enum {
     CD_INTEGER = 0x00,
@@ -16,8 +17,4 @@ typedef enum {
     CD_BOOLEAN = 0x06,
 } constant_serialization_type_t;
 
-/// Reads bytes from file and returns a pointer to the bytes.
-uint8_t* read_file(const char* name);
-/// Returns number of bytes read.
-size_t parse_bytecode(uint8_t* bytecode, size_t instruction_count);
-static void parse_constant_pool(uint8_t *file, chunk_t *chunk);
+void parse(vm_t* vm, const char* filename);

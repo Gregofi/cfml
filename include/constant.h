@@ -96,16 +96,14 @@ obj_function_t* build_obj_fun();
 
 #define OBJ_TYPE(value) (AS_OBJ(value)->type)
 
-#define IS_STRING(value) isObjType(value, OBJ_STRING);
+#define IS_STRING(value) is_obj_type(value, OBJ_STRING)
 #define AS_STRING(value) (((obj_string_t*)AS_OBJ(value)))
 #define AS_CSTRING(value) (((obj_string_t*)AS_OBJ(value))->data)
 
 #define IS_FUNCTION(value) isObjType(value, OBJ_FUN)
 #define AS_FUNCTION(value) (((obj_function_t*)AS_OBJ(value)))
 
-static inline bool is_obj_type(constant_t val, obj_type_t type) {
-    return IS_OBJ(val) && AS_OBJ(val)->type == type;
-}
+bool is_obj_type(constant_t val, obj_type_t type);
 
 typedef struct {
     constant_t* data;
@@ -119,4 +117,3 @@ void free_constant_pool(constant_pool_t* pool);
 
 /// Adds contant to constant array and returns index to it.
 size_t add_constant(constant_pool_t* pool, constant_t constant);
-

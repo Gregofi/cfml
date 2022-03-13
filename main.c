@@ -1,7 +1,20 @@
 #include <stdio.h>
+#include "include/serializer.h"
+#include "include/vm.h"
 
+int main(int argc, const char* argv[]) {
+    if (argc < 2) {
+        fprintf(stderr, "Usage: %s file\n", argv[0]);
+        exit(2);
+    }
+    vm_t vm;
+    init_vm(&vm);
+    parse(&vm, argv[1]);
 
-int main(void) {
-    printf("Hello world!\n");
+    interpret_result_t result = interpret(vm);
+    if (result == INTERPRET_RUNTIME_ERROR) {
+        fprintf(stderr, "Fatal: Runtime error occured.\n");
+        exit(22);
+    }
     return 0;
 }

@@ -32,19 +32,28 @@ constant_t pop(op_stack_t* stack)
 
 void init_vm(vm_t* vm)
 {
-    memset(vm, 0, sizeof(*vm));
+    vm->ip = NULL;
+    init_stack(&vm->op_stack);
+    init_chunk(&vm->bytecode);
 }
 
 void free_vm(vm_t* vm)
 {
-    free_chunk(vm->bytecode);
+    free_chunk(&vm->bytecode);
+    free_stack(&vm->op_stack);
+    init_vm(vm);
 }
 
 #define READ_BYTE_IP(vm) (*((vm)->ip++))
-#define READ_WORD_IP(vm) ((vm)->ip += 2, (*((vm)->ip - 2) << 8 | (*((vm)->ip - 1))))
+#define READ_WORD_IP(vm) ((vm)->ip += 2, (*((vm)->ip - 2) | (*((vm)->ip - 1) << 8)))
 
-bool interpret_print(vm_t* vm, chunk_t* t) {
-    const char* str = AS_CSTRING(t->pool.data[READ_WORD_IP(vm)]);
+bool interpret_print(vm_t* vm) {
+    constant_t obj = vm->bytecode.pool.data[READ_WORD_IP(vm)];
+    if (!IS_STRING(obj)) {
+        fprintf(stderr, "Print keyword accepts only string as it's first argument.");
+        return false;
+    }
+    const char* str = AS_CSTRING(obj);
     uint8_t arg_count = READ_BYTE_IP(vm);
     for(const char* ptr = str; *ptr != '\0'; ptr ++) {
         if (*ptr == '~') {
@@ -61,7 +70,7 @@ bool interpret_print(vm_t* vm, chunk_t* t) {
                     break;
                 case TYPE_OBJECT:
                 default:
-                    fprintf(stderr, "Uknown value type to print.");
+                    fprintf(stderr, "Uknown value type to print.\n");
                     return false;
             }
             arg_count -= 1;
@@ -71,17 +80,15 @@ bool interpret_print(vm_t* vm, chunk_t* t) {
     }
 
     if (arg_count != 0) {
-        fprintf(stderr, "Wrong number of arguments to print statement.");
+        fprintf(stderr, "Wrong number of arguments to print statement.\n");
+        return false;
     }
 
     return true;
 }
 
-interpret_result_t interpret(chunk_t* chunk)
+interpret_result_t interpret(vm_t vm)
 {
-    vm_t vm;
-    init_vm(&vm);
-
     for(;;) {
         switch(READ_BYTE_IP(&vm)) {
             case OP_RETURN:
@@ -93,7 +100,7 @@ interpret_result_t interpret(chunk_t* chunk)
                 break;
             case OP_LITERAL: {
                 uint16_t index = READ_WORD_IP(&vm);
-                push(&vm.op_stack, vm.bytecode->pool.data[index]);
+                push(&vm.op_stack, vm.bytecode.pool.data[index]);
             }
             case OP_GET_LOCAL:
             case OP_SET_LOCAL:
@@ -106,14 +113,14 @@ interpret_result_t interpret(chunk_t* chunk)
             case OP_SET_FIELD:
             case OP_CALL_FUNCTION:
             case OP_PRINT:
-                if (!interpret_print(&vm, chunk)) {
+                if (!interpret_print(&vm)) {
                     return INTERPRET_RUNTIME_ERROR;
                 }
                 break;
             case OP_ARRAY:
             case OP_CALL_METHOD:
             default:
-                fprintf(stderr, "Unknown instruction to interpret.");
+                fprintf(stderr, "Unknown instruction to interpret.\n");
                 return INTERPRET_RUNTIME_ERROR;
 
         }
