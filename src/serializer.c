@@ -44,15 +44,15 @@ FILE_ERROR:
 }
 
 static size_t parse_bytecode(uint8_t* bytecode, size_t instruction_count, chunk_t* chunk) {
-    size_t size = 0;
+    size_t byte_size = 0;
     while (instruction_count != 0) {
-        switch (*(bytecode + size)) {
+        switch (bytecode[byte_size]) {
             // one byte instructions
             case OP_RETURN:
             case OP_ARRAY:
             case OP_DROP:
-                size += 1;
-                write_chunk(chunk, *bytecode);
+                write_chunk(chunk, bytecode[byte_size]);
+                byte_size += 1;
                 break;
             // three byte instructions
             case OP_LITERAL:
@@ -66,27 +66,28 @@ static size_t parse_bytecode(uint8_t* bytecode, size_t instruction_count, chunk_
             case OP_OBJECT:
             case OP_GET_FIELD:
             case OP_SET_FIELD:
-                write_chunk(chunk, *bytecode);
-                write_chunk(chunk, *(bytecode + 1));
-                write_chunk(chunk, *(bytecode + 2));
-                size += 3;
+                write_chunk(chunk, bytecode[byte_size]);
+                // Indexes are in little endian.
+                write_chunk(chunk, bytecode[byte_size + 1]);
+                write_chunk(chunk, bytecode[byte_size + 2]);
+                byte_size += 3;
                 break;
             // four byte instruction
             case OP_CALL_FUNCTION:
             case OP_PRINT:
             case OP_CALL_METHOD:
-                write_chunk(chunk, *bytecode);
-                write_chunk(chunk, *(bytecode + 1));
-                write_chunk(chunk, *(bytecode + 2));
-                write_chunk(chunk, *(bytecode + 3));
-                size += 4;
+                write_chunk(chunk, bytecode[byte_size]);
+                write_chunk(chunk, bytecode[byte_size + 1]);
+                write_chunk(chunk, bytecode[byte_size + 2]);
+                write_chunk(chunk, bytecode[byte_size + 3]);
+                byte_size += 4;
                 break;
             default:
-                fprintf(stderr, "Unknown instruction '0x%X' to serialize.\n", *(bytecode + size));
+                fprintf(stderr, "Unknown instruction '0x%X' to serialize.\n", bytecode[byte_size]);
         }
         instruction_count -= 1;
     }
-    return size;
+    return byte_size;
 }
 
 static uint8_t* parse_constant_pool(uint8_t *file, chunk_t *chunk) {

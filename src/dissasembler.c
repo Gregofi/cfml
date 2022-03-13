@@ -11,12 +11,12 @@ static size_t simple_instruction(const char *name, size_t offset) {
 
 /// For three bytes instruction having as operand index to constant pool.
 static size_t index_instruction(const char* name, uint8_t* bytecode, size_t offset) {
-    printf("%s 0x%08X", name, READ_2BYTES(bytecode + offset + 1));
+    printf("%s %04d", name, READ_2BYTES(bytecode + offset + 1));
     return offset + 3;
 }
 
 size_t dissasemble_instruction(chunk_t* chunk, size_t offset) {
-    printf("%04lX ", offset);
+    printf("%04ld ", offset);
 
     uint8_t opcode = chunk->bytecode[offset];
     switch (opcode) {
@@ -66,6 +66,7 @@ size_t dissasemble_instruction(chunk_t* chunk, size_t offset) {
 void dissasemble_chunk(chunk_t *chunk, const char* name) {
     printf("=== %s ===\n", name);
     for(size_t idx = 0; idx < chunk->size;) {
-        idx += dissasemble_instruction(chunk, idx);
+        idx = dissasemble_instruction(chunk, idx);
+        puts("");
     }
 }

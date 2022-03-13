@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "include/serializer.h"
 #include "include/vm.h"
+#include "include/dissasembler.h"
 
 int main(int argc, const char* argv[]) {
     if (argc < 2) {
@@ -10,6 +11,9 @@ int main(int argc, const char* argv[]) {
     vm_t vm;
     init_vm(&vm);
     parse(&vm, argv[1]);
+
+    dissasemble_chunk(&vm.bytecode, "main chunk");
+    fflush(stdout);
 
     interpret_result_t result = interpret(vm);
     if (result == INTERPRET_RUNTIME_ERROR) {
