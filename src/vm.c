@@ -136,6 +136,11 @@ interpret_result_t interpret(vm_t* vm)
                 push(&vm->op_stack, vm->bytecode.pool.data[index]);
                 break;
             }
+            case OP_PRINT:
+                if (!interpret_print(vm)) {
+                    return INTERPRET_RUNTIME_ERROR;
+                }
+                break;
             case OP_GET_LOCAL:
             case OP_SET_LOCAL:
             case OP_GET_GLOBAL:
@@ -146,11 +151,6 @@ interpret_result_t interpret(vm_t* vm)
             case OP_GET_FIELD:
             case OP_SET_FIELD:
             case OP_CALL_FUNCTION:
-            case OP_PRINT:
-                if (!interpret_print(vm)) {
-                    return INTERPRET_RUNTIME_ERROR;
-                }
-                break;
             case OP_ARRAY:
             case OP_CALL_METHOD:
             default:
