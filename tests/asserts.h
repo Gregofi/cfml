@@ -21,7 +21,10 @@ return EXIT_FAILURE;                                                            
 #define RED_COLOR_TERMINAL "\033[0;31m"
 #define CLEAR_COLOR_TERMINAL "\033[0;0m"
 
-#define TEST(test)                                                                                          \
+
+#define TEST(name) int name()
+
+#define RUN_TEST(test)                                                                                          \
 if((test)() != 0)                                                                                           \
     printf("Test '%s'" RED_COLOR_TERMINAL " failed.\n" CLEAR_COLOR_TERMINAL, #test);                        \
 else {                                                                                                      \

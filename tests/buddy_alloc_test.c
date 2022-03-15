@@ -4,7 +4,7 @@
 #include "include/buddy_alloc.h"
 #include "asserts.h"
 
-int basicTest() {
+TEST(basicTest) {
     uint8_t *p0, *p1, *p2;
     uint8_t* mem_pool = malloc(3 * 1048576);
     heap_init(mem_pool, 2097152);
@@ -22,7 +22,7 @@ int basicTest() {
     return EXIT_SUCCESS;
 }
 
-int basicTest2() {
+TEST(basicTest2) {
     uint8_t *p0, *p1, *p2, *p3, *p4;
     static uint8_t  mem_pool[3 * 1048576];
 
@@ -81,7 +81,7 @@ int basicTest2() {
     return EXIT_SUCCESS;
 }
 
-int extensiveTest() {
+TEST(extensiveTest) {
     static uint8_t  mem_pool[3 * 1048576];
     heap_init(mem_pool, 2359296);
     void* ptrs[10000];
@@ -116,7 +116,7 @@ int extensiveTest() {
 }
 
 int main(void) {
-    TEST(basicTest);
-    TEST(basicTest2);
-    TEST(extensiveTest);
+    RUN_TEST(basicTest);
+    RUN_TEST(basicTest2);
+    RUN_TEST(extensiveTest);
 }
