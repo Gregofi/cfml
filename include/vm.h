@@ -8,7 +8,7 @@ typedef enum {
 } interpret_result_t;
 
 typedef struct {
-    constant_t* data;
+    value_t* data;
     size_t size;
     size_t capacity;
 } op_stack_t;
@@ -22,8 +22,8 @@ typedef struct {
 
 void init_stack(op_stack_t* stack);
 void free_stack(op_stack_t* stack);
-void push(op_stack_t* stack, constant_t c);
-constant_t pop();
+void push(op_stack_t* stack, value_t c);
+value_t pop();
 
 void init_vm(vm_t* vm);
 void free_vm(vm_t* vm);

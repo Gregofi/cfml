@@ -65,7 +65,7 @@ typedef struct {
         bool b;
         obj_t* obj;
     };
-} constant_t;
+} value_t;
 
 obj_string_t* build_obj_string(size_t len, const char* ptr);
 
@@ -74,10 +74,10 @@ obj_string_t* build_obj_string(size_t len, const char* ptr);
 obj_function_t* build_obj_fun();
 
 // 'Constructor' functions for values.
-#define INTEGER_VAL(value) ((constant_t){TYPE_INTEGER, {.num = (value)}})
-#define BOOL_VAL(value)    ((constant_t){TYPE_BOOLEAN, {.b = (value)}})
-#define NULL_VAL           ((constant_t){TYPE_NULL, {.num = 0}})
-#define OBJ_VAL(value)     ((constant_t){TYPE_OBJECT, {.obj = (obj_t*)(value)}})
+#define INTEGER_VAL(value) ((value_t){TYPE_INTEGER, {.num = (value)}})
+#define BOOL_VAL(value)    ((value_t){TYPE_BOOLEAN, {.b = (value)}})
+#define NULL_VAL           ((value_t){TYPE_NULL, {.num = 0}})
+#define OBJ_VAL(value)     ((value_t){TYPE_OBJECT, {.obj = (obj_t*)(value)}})
 
 /// Creates an object value containing string.
 /// @param len - Length of the string to copy.
@@ -103,10 +103,10 @@ obj_function_t* build_obj_fun();
 #define IS_FUNCTION(value) isObjType(value, OBJ_FUN)
 #define AS_FUNCTION(value) (((obj_function_t*)AS_OBJ(value)))
 
-bool is_obj_type(constant_t val, obj_type_t type);
+bool is_obj_type(value_t val, obj_type_t type);
 
 typedef struct {
-    constant_t* data;
+    value_t* data;
     size_t capacity;
     size_t len;
 } constant_pool_t;
@@ -116,4 +116,4 @@ void init_constant_pool(constant_pool_t* pool);
 void free_constant_pool(constant_pool_t* pool);
 
 /// Adds contant to constant array and returns index to it.
-size_t add_constant(constant_pool_t* pool, constant_t constant);
+size_t add_constant(constant_pool_t* pool, value_t constant);

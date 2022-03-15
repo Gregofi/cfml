@@ -117,7 +117,7 @@ static uint8_t* parse_constant_pool(uint8_t *file, chunk_t *chunk) {
                 break;
             }
             case CD_METHOD: {
-                constant_t fun = OBJ_FUN_VAL();
+                value_t fun = OBJ_FUN_VAL();
                 obj_function_t *fun_obj = AS_FUNCTION(fun);
                 fun_obj->name = READ_2BYTES(file + 1);
                 fun_obj->args = READ_BYTE(file + 3);

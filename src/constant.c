@@ -7,10 +7,10 @@ void init_constant_pool(constant_pool_t* pool) {
     memset(pool, 0, sizeof(*pool));
 }
 
-size_t add_constant(constant_pool_t* pool, constant_t constant) {
+size_t add_constant(constant_pool_t* pool, value_t constant) {
     if (pool->len >= pool->capacity) {
         pool->capacity = NEW_CAPACITY(pool->capacity);
-        pool->data = (constant_t*)realloc(pool->data, pool->capacity * sizeof(*(pool->data))); 
+        pool->data = (value_t*)realloc(pool->data, pool->capacity * sizeof(*(pool->data))); 
     }
 
     pool->data[pool->len++] = constant;
@@ -49,6 +49,6 @@ obj_function_t* build_obj_fun() {
     return fun;
 }
 
-bool is_obj_type(constant_t val, obj_type_t type) {
+bool is_obj_type(value_t val, obj_type_t type) {
     return IS_OBJ(val) && AS_OBJ(val)->type == type;
 }

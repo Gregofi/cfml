@@ -17,7 +17,7 @@ void free_stack(op_stack_t* stack)
     free(stack->data);
 }
 
-void push(op_stack_t* stack, constant_t c)
+void push(op_stack_t* stack, value_t c)
 {
     if (stack->size >= stack->capacity) {
         stack->capacity = NEW_CAPACITY(stack->capacity);
@@ -27,7 +27,7 @@ void push(op_stack_t* stack, constant_t c)
     stack->data[stack->size++] = c;
 }
 
-constant_t pop(op_stack_t* stack)
+value_t pop(op_stack_t* stack)
 {
     if (stack->size == 0) {
         fprintf(stderr, "Popping from empty stack.");
@@ -54,7 +54,7 @@ void free_vm(vm_t* vm)
 #define READ_WORD_IP(vm) ((vm)->ip += 2, (*((vm)->ip - 2) | (*((vm)->ip - 1) << 8)))
 
 bool interpret_print(vm_t* vm) {
-    constant_t obj = vm->bytecode.pool.data[READ_WORD_IP(vm)];
+    value_t obj = vm->bytecode.pool.data[READ_WORD_IP(vm)];
     if (!IS_STRING(obj)) {
         fprintf(stderr, "Print keyword accepts only string as it's first argument.\n");
         return false;
@@ -63,7 +63,7 @@ bool interpret_print(vm_t* vm) {
     uint8_t arg_count = READ_BYTE_IP(vm);
     for(const char* ptr = str; *ptr != '\0'; ptr ++) {
         if (*ptr == '~') {
-            constant_t val = pop(&vm->op_stack);
+            value_t val = pop(&vm->op_stack);
             switch (val.type) {
                 case TYPE_INTEGER:
                     printf("%d", AS_NUMBER(val));
