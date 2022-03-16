@@ -8,6 +8,8 @@
 #include "include/memory.h"
 #include "include/hashmap.h"
 
+#define IS_GRAVE(node) ((node)->key == NULL && IS_BOOL((node)->value) && AS_BOOL((node)->value))
+
 void init_hash_map(hash_map_t* hm) {
     memset(hm, 0, sizeof(*hm));
 }
@@ -40,11 +42,13 @@ static entry_t* hash_map_find_entry(entry_t* entries, size_t capacity, obj_strin
 
         // Save grave if encountered.
         if (entry->key == NULL) {
-            if (entry->value == HASH_MAP_GRAVE) {
-                grave = entry;
-            }
             // Return grave if it was encountered.
-            else {
+            if (IS_BOOL(entry->value) && AS_BOOL(entry->value)) {
+                // Save only the first occurence of the grave
+                if (grave == NULL) {
+                    grave = entry;
+                }
+            } else {
                 return grave != NULL ? grave : entry;
             }
         // Comparing by pointers, this is okay since
@@ -84,7 +88,7 @@ static void hash_map_resize(hash_map_t *hm, size_t capacity) {
     hm->capacity = capacity;
 }
 
-bool hash_map_insert(hash_map_t* hm, obj_string_t* key, void* value) {
+bool hash_map_insert(hash_map_t* hm, obj_string_t* key, value_t value) {
     if (hm->count >= hm->capacity) {
         hash_map_resize(hm, NEW_CAPACITY(hm->capacity));
     }
@@ -92,7 +96,7 @@ bool hash_map_insert(hash_map_t* hm, obj_string_t* key, void* value) {
     entry_t* entry = hash_map_find_entry(hm->entries, hm->capacity, key);
     bool is_new = entry->key == NULL;
 
-    if (is_new && entry->value != HASH_MAP_GRAVE) {
+    if (is_new && !IS_GRAVE(entry)) {
         hm->count += 1;
     }
 
@@ -101,7 +105,7 @@ bool hash_map_insert(hash_map_t* hm, obj_string_t* key, void* value) {
     return true;
 }
 
-bool hash_map_fetch(hash_map_t* hm, obj_string_t* key, void** value) {
+bool hash_map_fetch(hash_map_t* hm, obj_string_t* key, value_t* value) {
     if (hm->count == 0) {
         return false;
     }
@@ -126,7 +130,7 @@ bool hash_map_delete(hash_map_t* hm, obj_string_t* key) {
     }
 
     // Create grave
-    entry->value = NULL;
-    entry->key = HASH_MAP_GRAVE;
+    entry->key = NULL;
+    entry->value = BOOL_VAL(true);
     return true;
 }

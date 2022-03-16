@@ -5,6 +5,29 @@
 #include "include/bytecode.h"
 #include "include/memory.h"
 
+void push_frame(call_frames_t* call_frames) {
+    if (call_frames->length >= call_frames->capacity) {
+        call_frames->capacity = NEW_CAPACITY(call_frames->capacity);
+        call_frames->frames = realloc(call_frames->frames, sizeof(*call_frames->frames) * call_frames->capacity);
+    }
+
+    init_hash_map(&call_frames->frames[call_frames->length++]);
+}
+
+void pop_frame(call_frames_t* call_frames) {
+    free_hash_map(&call_frames->frames[call_frames->length--]);
+}
+
+bool find_var(obj_string_t* name, call_frames_t* call_frames, value_t* value) {
+    value_t* val;
+    hash_map_fetch(&call_frames->frames[call_frames->length], name, &value);
+}
+
+bool add_var(obj_string_t* name, call_frames_t* call_frames, value_t* value) {
+
+}
+
+
 void init_stack(op_stack_t* stack)
 {
     stack->capacity = 0;
@@ -145,8 +168,18 @@ interpret_result_t interpret(vm_t* vm)
             case OP_SET_LOCAL:
             case OP_GET_GLOBAL:
             case OP_SET_GLOBAL:
-            case OP_JUMP:
-            case OP_BRANCH:
+            case OP_BRANCH: {
+                value_t val = pop(&vm->op_stack);
+                if(IS_FALSY(val)) {
+                    break;
+                }
+                // Else fall through
+            }
+            case OP_JUMP: {
+                size_t index = *vm->ip | (*(vm->ip + 1) << 8) | (*(vm->ip + 2) << 16);
+                vm->ip = &vm->bytecode.bytecode[index];
+                break;
+            }
             case OP_OBJECT:
             case OP_GET_FIELD:
             case OP_SET_FIELD:

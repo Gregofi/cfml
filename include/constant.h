@@ -87,7 +87,7 @@ obj_function_t* build_obj_fun();
 #define OBJ_FUN_VAL() (OBJ_VAL((build_obj_fun())))
 
 #define IS_NUMBER(value) ((value).type == TYPE_INTEGER)
-#define IS_BOOL(value) ((value).type == TYPE_BOOL)
+#define IS_BOOL(value) ((value).type == TYPE_BOOLEAN)
 #define IS_NULL(value) ((value).type == TYPE_NULL)
 #define IS_OBJ(value) ((value).type == TYPE_OBJECT)
 
@@ -103,6 +103,8 @@ obj_function_t* build_obj_fun();
 
 #define IS_FUNCTION(value) isObjType(value, OBJ_FUN)
 #define AS_FUNCTION(value) (((obj_function_t*)AS_OBJ(value)))
+
+#define IS_FALSY(value) ( (IS_BOOL(value) && !AS_BOOL(value)) || IS_NULL(value) )
 
 bool is_obj_type(value_t val, obj_type_t type);
 

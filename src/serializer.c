@@ -81,15 +81,15 @@ static size_t prepare_jumps(const chunk_t* chunk, hash_map_t* jump_map) {
             case OP_BRANCH: {
                 uint16_t index = READ_2BYTES(chunk->bytecode + i + 1);
                 obj_string_t* label = AS_STRING(chunk->pool.data[index]);
-                uint32_t row;
-                if (!hash_map_fetch(jump_map, label, (void**)&row)) {
+                value_t row;
+                if (!hash_map_fetch(jump_map, label, &row)) {
                     fprintf(stderr, "Couldn't find jump label '%s' in hashmap.\n", label->data);
                     exit(54);
                 }
                 
-                chunk->bytecode[i] = (uint8_t)(row >> 16);
-                chunk->bytecode[i] = (uint8_t)(row >> 8);
-                chunk->bytecode[i] = (uint8_t)row;
+                chunk->bytecode[i] = (uint8_t)(row.num >> 16);
+                chunk->bytecode[i] = (uint8_t)(row.num >> 8);
+                chunk->bytecode[i] = (uint8_t)row.num;
             }
             default:
                 fprintf(stderr, "Unknown instruction '0x%X' to serialize.\n", chunk->bytecode[i]);
@@ -138,7 +138,7 @@ static size_t parse_bytecode(uint8_t* bytecode, size_t instruction_count, chunk_
             // Special cases
             case OP_LABEL: {
                 obj_string_t* str = AS_STRING(chunk->pool.data[READ_2BYTES(bytecode + byte_size + 1)]);
-                hash_map_insert(labels, str, (void*)(chunk->size));
+                hash_map_insert(labels, str, INTEGER_VAL(chunk->size));
                 write_chunk(chunk, bytecode[byte_size]);
                 write_chunk(chunk, bytecode[byte_size + 1]);
                 write_chunk(chunk, bytecode[byte_size + 2]);
