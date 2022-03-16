@@ -1,5 +1,6 @@
 #include <stdio.h>
 
+#include "include/hashmap.h"
 #include "include/serializer.h"
 #include "include/bytecode.h"
 #include "include/constant.h"
@@ -43,6 +44,47 @@ FILE_ERROR:
     exit(33);
 }
 
+/// Single pass through the entire bytecode to prepare jumping instructions.
+/// Writes labels into hashmap.
+static size_t prepare_jumps(uint8_t* bytecode, size_t instruction_count) {
+    size_t byte_size = 0;
+    while (instruction_count != 0) {
+        switch (bytecode[byte_size]) {
+            // one byte instructions
+            case OP_RETURN:
+            case OP_ARRAY:
+            case OP_DROP:
+                byte_size += 1;
+                break;
+            // three byte instructions
+            case OP_LITERAL:
+            case OP_GET_LOCAL:
+            case OP_SET_LOCAL:
+            case OP_GET_GLOBAL:
+            case OP_SET_GLOBAL:
+            case OP_LABEL:
+            case OP_JUMP:
+            case OP_BRANCH:
+            case OP_OBJECT:
+            case OP_GET_FIELD:
+            case OP_SET_FIELD:
+                byte_size += 3;
+                break;
+            // four byte instruction
+            case OP_CALL_FUNCTION:
+            case OP_PRINT:
+            case OP_CALL_METHOD:
+                byte_size += 4;
+                break;
+            default:
+                fprintf(stderr, "Unknown instruction '0x%X' to serialize.\n", bytecode[byte_size]);
+                break;
+        }
+        instruction_count -= 1;
+    }
+    return byte_size;
+}
+
 static size_t parse_bytecode(uint8_t* bytecode, size_t instruction_count, chunk_t* chunk) {
     size_t byte_size = 0;
     while (instruction_count != 0) {
@@ -84,6 +126,7 @@ static size_t parse_bytecode(uint8_t* bytecode, size_t instruction_count, chunk_
                 break;
             default:
                 fprintf(stderr, "Unknown instruction '0x%X' to serialize.\n", bytecode[byte_size]);
+                break;
         }
         instruction_count -= 1;
     }
@@ -112,7 +155,7 @@ static uint8_t* parse_constant_pool(uint8_t *file, chunk_t *chunk) {
             case CD_STRING: {
                 size_t length = READ_4BYTES(file + 1);
                 const char* str = (char*)(file + 5);
-                add_constant(&chunk->pool, OBJ_STRING_VAL(length, str));
+                add_constant(&chunk->pool, OBJ_STRING_VAL(length, str, hash_string(str)));
                 file += 5 + length;
                 break;
             }

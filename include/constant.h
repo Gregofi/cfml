@@ -39,6 +39,7 @@ typedef struct {
 typedef struct {
     obj_t obj;
     size_t length;
+    uint32_t hash;
     char data[];
 } obj_string_t;
 
@@ -67,7 +68,7 @@ typedef struct {
     };
 } value_t;
 
-obj_string_t* build_obj_string(size_t len, const char* ptr);
+obj_string_t* build_obj_string(size_t len, const char* ptr, uint32_t hash);
 
 /// Allocates function object on heap and returns pointer to it, fields of function are zero initialized
 /// with exception of object, which is initialized correctly.
@@ -82,7 +83,7 @@ obj_function_t* build_obj_fun();
 /// Creates an object value containing string.
 /// @param len - Length of the string to copy.
 /// @param source - const char* pointer to the string to copy from.
-#define OBJ_STRING_VAL(len, source) (OBJ_VAL((build_obj_string((len), (source)))))
+#define OBJ_STRING_VAL(len, source, hash) (OBJ_VAL((build_obj_string((len), (source), (hash)))))
 #define OBJ_FUN_VAL() (OBJ_VAL((build_obj_fun())))
 
 #define IS_NUMBER(value) ((value).type == TYPE_INTEGER)

@@ -28,7 +28,8 @@ void free_constant_pool(constant_pool_t* pool) {
     init_constant_pool(pool);
 }
 
-obj_string_t* build_obj_string(size_t len, const char* ptr) {
+/// Returns new dynamically allocated instance of obj_string_t
+obj_string_t* build_obj_string(size_t len, const char* ptr, uint32_t hash) {
     obj_string_t* new_string = (obj_string_t*)malloc(sizeof(*new_string) 
                                     + len + 1);
     new_string->length = len;
@@ -36,6 +37,7 @@ obj_string_t* build_obj_string(size_t len, const char* ptr) {
     new_string->data[len] = '\0';
     new_string->obj = (obj_t){.type = OBJ_STRING};
     new_string->length = len;
+    new_string->hash = hash;
     return new_string;
 }
 

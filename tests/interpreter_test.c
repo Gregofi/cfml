@@ -48,5 +48,5 @@ TEST(DataStructureTest) {
 
 
 int main(void) {
-    RUN_TEST(PopPushTest);
+    RUN_TEST(DataStructureTest);
 }
