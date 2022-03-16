@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdint.h>
 
 #include "include/hashmap.h"
 #include "include/serializer.h"
@@ -45,16 +46,15 @@ FILE_ERROR:
 }
 
 /// Single pass through the entire bytecode to prepare jumping instructions.
-/// Writes labels into hashmap.
-static size_t prepare_jumps(uint8_t* bytecode, size_t instruction_count) {
+static size_t prepare_jumps(const chunk_t* chunk, hash_map_t* jump_map) {
     size_t byte_size = 0;
-    while (instruction_count != 0) {
-        switch (bytecode[byte_size]) {
+    for (size_t i = 0; i < chunk->size;) {
+        switch (chunk->bytecode[i]) {
             // one byte instructions
             case OP_RETURN:
             case OP_ARRAY:
             case OP_DROP:
-                byte_size += 1;
+                i += 1;
                 break;
             // three byte instructions
             case OP_LITERAL:
@@ -62,30 +62,44 @@ static size_t prepare_jumps(uint8_t* bytecode, size_t instruction_count) {
             case OP_SET_LOCAL:
             case OP_GET_GLOBAL:
             case OP_SET_GLOBAL:
-            case OP_LABEL:
-            case OP_JUMP:
-            case OP_BRANCH:
+            case OP_LABEL: {
+                i += 3;
+                break;
+            }
             case OP_OBJECT:
             case OP_GET_FIELD:
             case OP_SET_FIELD:
-                byte_size += 3;
+                i += 3;
                 break;
             // four byte instruction
             case OP_CALL_FUNCTION:
             case OP_PRINT:
             case OP_CALL_METHOD:
-                byte_size += 4;
+                i += 4;
                 break;
+            case OP_JUMP:
+            case OP_BRANCH: {
+                uint16_t index = READ_2BYTES(chunk->bytecode + i + 1);
+                obj_string_t* label = AS_STRING(chunk->pool.data[index]);
+                uint32_t row;
+                if (!hash_map_fetch(jump_map, label, (void**)&row)) {
+                    fprintf(stderr, "Couldn't find jump label '%s' in hashmap.\n", label->data);
+                    exit(54);
+                }
+                
+                chunk->bytecode[i] = (uint8_t)(row >> 16);
+                chunk->bytecode[i] = (uint8_t)(row >> 8);
+                chunk->bytecode[i] = (uint8_t)row;
+            }
             default:
-                fprintf(stderr, "Unknown instruction '0x%X' to serialize.\n", bytecode[byte_size]);
+                fprintf(stderr, "Unknown instruction '0x%X' to serialize.\n", chunk->bytecode[i]);
                 break;
         }
-        instruction_count -= 1;
     }
     return byte_size;
 }
 
-static size_t parse_bytecode(uint8_t* bytecode, size_t instruction_count, chunk_t* chunk) {
+static size_t parse_bytecode(uint8_t* bytecode, size_t instruction_count, chunk_t* chunk, hash_map_t* labels) {
     size_t byte_size = 0;
     while (instruction_count != 0) {
         switch (bytecode[byte_size]) {
@@ -102,9 +116,6 @@ static size_t parse_bytecode(uint8_t* bytecode, size_t instruction_count, chunk_
             case OP_SET_LOCAL:
             case OP_GET_GLOBAL:
             case OP_SET_GLOBAL:
-            case OP_LABEL:
-            case OP_JUMP:
-            case OP_BRANCH:
             case OP_OBJECT:
             case OP_GET_FIELD:
             case OP_SET_FIELD:
@@ -124,6 +135,26 @@ static size_t parse_bytecode(uint8_t* bytecode, size_t instruction_count, chunk_
                 write_chunk(chunk, bytecode[byte_size + 3]);
                 byte_size += 4;
                 break;
+            // Special cases
+            case OP_LABEL: {
+                obj_string_t* str = AS_STRING(chunk->pool.data[READ_2BYTES(bytecode + byte_size + 1)]);
+                hash_map_insert(labels, str, (void*)(chunk->size));
+                write_chunk(chunk, bytecode[byte_size]);
+                write_chunk(chunk, bytecode[byte_size + 1]);
+                write_chunk(chunk, bytecode[byte_size + 2]);
+                break;
+            }
+            // Jump instructions will receive their destination in another pass
+            // Now they are also 4 bytes. 
+            case OP_JUMP:
+            case OP_BRANCH:
+                write_chunk(chunk, bytecode[byte_size]);
+                write_chunk(chunk, bytecode[byte_size + 1]);
+                write_chunk(chunk, bytecode[byte_size + 2]);
+                write_chunk(chunk, 0xFF); // Dummy value
+                byte_size += 4;
+                break;
+
             default:
                 fprintf(stderr, "Unknown instruction '0x%X' to serialize.\n", bytecode[byte_size]);
                 break;
@@ -137,6 +168,8 @@ static uint8_t* parse_constant_pool(uint8_t *file, chunk_t *chunk) {
     // Read size of constant pool
     uint16_t size = READ_2BYTES(file);
     file += 2;
+    hash_map_t labels;
+    init_hash_map(&labels);
 
     while (size != 0) {
         switch (*file) {
@@ -169,7 +202,7 @@ static uint8_t* parse_constant_pool(uint8_t *file, chunk_t *chunk) {
 
                 uint32_t bytecode_length = READ_4BYTES(file + 6);
                 // Read the bytecode and update the length to bytes instead of instruction count
-                bytecode_length = parse_bytecode(file + 10, bytecode_length, chunk);
+                bytecode_length = parse_bytecode(file + 10, bytecode_length, chunk, &labels);
                 fun_obj->length = bytecode_length;
                 file += 10 + bytecode_length;
                 add_constant(&chunk->pool, fun);
@@ -184,6 +217,11 @@ static uint8_t* parse_constant_pool(uint8_t *file, chunk_t *chunk) {
         }
         size -= 1;
     }
+
+    // Change labels to indexes
+    prepare_jumps(chunk, &labels);
+
+    free_hash_map(&labels);
     return file;
 }
 
