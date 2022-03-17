@@ -23,5 +23,6 @@ void write_chunk(chunk_t *chunk, uint8_t data) {
 void free_chunk(chunk_t *chunk) {
     free(chunk->bytecode);
     free_constant_pool(&chunk->pool);
+    free_globals(&chunk->globals);
     init_chunk(chunk);
 }

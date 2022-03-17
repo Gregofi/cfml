@@ -16,6 +16,10 @@ void write_global(global_indexes_t* globals, uint16_t index) {
     globals->indexes[globals->length ++] = index;
 }
 
+void free_globals(global_indexes_t* globals) {
+    free(globals->indexes);
+    init_globals(globals);
+}
 
 void init_constant_pool(constant_pool_t* pool) {
     memset(pool, 0, sizeof(*pool));

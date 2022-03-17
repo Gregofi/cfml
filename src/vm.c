@@ -5,6 +5,7 @@
 #include "include/vm.h"
 #include "include/bytecode.h"
 #include "include/memory.h"
+#include "include/dissasembler.h"
 
 call_frame_t* get_top_frame(call_frames_t* call_frames) {
     return &call_frames->frames[call_frames->length - 1];
@@ -68,10 +69,14 @@ void push(op_stack_t* stack, value_t c)
 value_t pop(op_stack_t* stack)
 {
     if (stack->size == 0) {
-        fprintf(stderr, "Popping from empty stack.");
+        fprintf(stderr, "Popping from empty stack.\n");
         exit(77);
     }
     return stack->data[--stack->size];
+}
+
+value_t peek(op_stack_t* stack) {
+    return stack->data[stack->size - 1];
 }
 
 void init_vm(vm_t* vm)
@@ -197,13 +202,17 @@ interpret_result_t interpret(vm_t* vm)
     push_frame(&vm->frames, NULL);
     
     for (;(size_t)(vm->ip - vm->bytecode.bytecode) < vm->bytecode.size;) {
+        dissasemble_instruction(&vm->bytecode, vm->ip - vm->bytecode.bytecode);
+        puts("");
         switch (READ_BYTE_IP(vm)) {
             case OP_RETURN: {
                 uint8_t* old_ip = pop_frame(&vm->frames);
                 // If global frame is popped.
-                if (!old_ip)
+                if (old_ip == NULL) {
                     return INTERPRET_OK;
+                }
                 vm->ip = old_ip;
+                break;
             }
             case OP_LABEL:
                 // We have updated jumps,
@@ -229,7 +238,7 @@ interpret_result_t interpret(vm_t* vm)
             }
             case OP_SET_LOCAL: {
                 uint16_t index = READ_WORD_IP(vm);
-                get_top_frame(&vm->frames)->locals_vector[index] = pop(&vm->op_stack);
+                get_top_frame(&vm->frames)->locals_vector[index] = peek(&vm->op_stack);
                 break;
             }
             case OP_GET_GLOBAL: {
@@ -243,11 +252,10 @@ interpret_result_t interpret(vm_t* vm)
             case OP_SET_GLOBAL: {
                 uint16_t index = READ_WORD_IP(vm);
                 obj_string_t* name = AS_STRING(vm->bytecode.pool.data[index]);
-                value_t val = pop(&vm->op_stack);
+                value_t val = peek(&vm->op_stack);
                 hash_map_update(&vm->global_var, name, val);
                 break;
             }
-                NOT_IMPLEMENTED();
             case OP_BRANCH: {
                 value_t val = pop(&vm->op_stack);
                 if(IS_FALSY(val)) {
@@ -256,6 +264,7 @@ interpret_result_t interpret(vm_t* vm)
             // Else fall through
             }
             case OP_JUMP: {
+                // Jump index is not in little endian.
                 size_t index = *vm->ip << 16 | *(vm->ip + 1) << 8 | *(vm->ip + 2);
                 vm->ip = &vm->bytecode.bytecode[index];
                 break;

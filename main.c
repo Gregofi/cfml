@@ -14,7 +14,7 @@ int main(int argc, const char* argv[]) {
 
     dissasemble_chunk(&vm.bytecode, "main chunk");
     fflush(stdout);
-
+    puts("After parsing.\n");
     interpret_result_t result = interpret(&vm);
     if (result == INTERPRET_RUNTIME_ERROR) {
         fprintf(stderr, "Fatal: Runtime error occured.\n");

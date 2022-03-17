@@ -78,6 +78,7 @@ typedef struct {
 
 void init_globals(global_indexes_t* globals);
 void write_global(global_indexes_t* globals, uint16_t index);
+void free_globals(global_indexes_t* globals);
 
 obj_string_t* build_obj_string(size_t len, const char* ptr, uint32_t hash);
 
