@@ -69,6 +69,13 @@ obj_function_t* build_obj_fun() {
     return fun;
 }
 
+obj_slot_t* build_obj_slot(uint16_t index) {
+    obj_slot_t* slot = malloc(sizeof(*slot));
+    slot->index = index;
+    slot->obj = (obj_t){.type = OBJ_SLOT};
+    return slot;
+}
+
 bool is_obj_type(value_t val, obj_type_t type) {
     return IS_OBJ(val) && AS_OBJ(val)->type == type;
 }

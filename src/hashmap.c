@@ -3,6 +3,8 @@
 #include <string.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <assert.h>
+
 
 #include "include/constant.h"
 #include "include/memory.h"
@@ -89,10 +91,11 @@ static void hash_map_resize(hash_map_t *hm, size_t capacity) {
 }
 
 bool hash_map_insert(hash_map_t* hm, obj_string_t* key, value_t value) {
+    assert(key->obj.type == OBJ_STRING);
+    
     if (hm->count >= hm->capacity) {
         hash_map_resize(hm, NEW_CAPACITY(hm->capacity));
     }
-
     entry_t* entry = hash_map_find_entry(hm->entries, hm->capacity, key);
     bool is_new = entry->key == NULL;
 

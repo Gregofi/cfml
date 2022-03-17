@@ -214,7 +214,11 @@ uint8_t* parse_constant_pool(uint8_t *file, chunk_t *chunk) {
                 break;
             }
             case CD_CLASS:
+                NOT_IMPLEMENTED();
             case CD_SLOT:
+                add_constant(&chunk->pool, OBJ_SLOT_VAL(READ_2BYTES(file + 1)));
+                file += 3;
+                break;
             default:
                 fprintf(stderr, "Unknown tag 0x%X for constant object.\n", *file);
                 exit(2);
@@ -236,7 +240,9 @@ uint8_t* parse_globals(vm_t *vm, chunk_t* chunk, uint8_t* code) {
         uint16_t index = READ_2BYTES(code);
         // TODO: Here, slots could also be located, but we're not dealing with objects yet.
         write_global(&chunk->globals, index);
-        hash_map_insert(&vm->global_var, AS_STRING(chunk->pool.data[index]), NULL_VAL);
+        
+        uint16_t index_slot = AS_SLOT(chunk->pool.data[index])->index;
+        hash_map_insert(&vm->global_var, AS_STRING(chunk->pool.data[index_slot]), NULL_VAL);
         code += 2;
     }
     return code;

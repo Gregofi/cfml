@@ -28,6 +28,7 @@ typedef enum {
     OBJ_ARRAY,
     OBJ_CLASS,
     OBJ_FUNCTION,
+    OBJ_SLOT,
 } obj_type_t;
 
 // ------------- OBJECTS --------------
@@ -56,6 +57,11 @@ typedef struct {
     // Length of the function in bytes.
     size_t length;
 } obj_function_t;
+
+typedef struct {
+    obj_t obj;
+    uint16_t index;
+} obj_slot_t;
 
 // -------------------------------------
 
@@ -86,6 +92,8 @@ obj_string_t* build_obj_string(size_t len, const char* ptr, uint32_t hash);
 /// with exception of object, which is initialized correctly.
 obj_function_t* build_obj_fun();
 
+obj_slot_t* build_obj_slot(uint16_t index);
+
 // 'Constructor' functions for values.
 #define INTEGER_VAL(value) ((value_t){TYPE_INTEGER, {.num = (value)}})
 #define BOOL_VAL(value)    ((value_t){TYPE_BOOLEAN, {.b = (value)}})
@@ -97,6 +105,7 @@ obj_function_t* build_obj_fun();
 /// @param source - const char* pointer to the string to copy from.
 #define OBJ_STRING_VAL(len, source, hash) (OBJ_VAL((build_obj_string((len), (source), (hash)))))
 #define OBJ_FUN_VAL() (OBJ_VAL((build_obj_fun())))
+#define OBJ_SLOT_VAL(index) OBJ_VAL(build_obj_slot(index))
 
 #define IS_NUMBER(value) ((value).type == TYPE_INTEGER)
 #define IS_BOOL(value) ((value).type == TYPE_BOOLEAN)
@@ -115,6 +124,9 @@ obj_function_t* build_obj_fun();
 
 #define IS_FUNCTION(value) (is_obj_type(value, OBJ_FUNCTION))
 #define AS_FUNCTION(value) (((obj_function_t*)AS_OBJ(value)))
+
+#define IS_SLOT(value) (is_obj_type((value), OBJ_SLOT))
+#define AS_SLOT(value) (((obj_slot_t*)AS_OBJ(value)))
 
 #define IS_FALSY(value) ( (IS_BOOL(value) && !AS_BOOL(value)) || IS_NULL(value) )
 
