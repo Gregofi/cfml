@@ -3,6 +3,20 @@
 #include "include/constant.h"
 #include "include/memory.h"
 
+void init_globals(global_indexes_t* globals) {
+    memset(globals, 0, sizeof(*globals));
+}
+
+void write_global(global_indexes_t* globals, uint16_t index) {
+    if (globals->length >= globals->capacity) {
+        globals->capacity = NEW_CAPACITY(globals->capacity);
+        globals->indexes = realloc(globals->indexes, globals->capacity);
+    }
+
+    globals->indexes[globals->length ++] = index;
+}
+
+
 void init_constant_pool(constant_pool_t* pool) {
     memset(pool, 0, sizeof(*pool));
 }

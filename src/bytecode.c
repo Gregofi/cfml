@@ -8,6 +8,7 @@
 void init_chunk(chunk_t *chunk) {
     memset(chunk, 0, sizeof(*chunk));
     init_constant_pool(&chunk->pool);
+    init_globals(&chunk->globals);
 }
 
 void write_chunk(chunk_t *chunk, uint8_t data) {

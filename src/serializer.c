@@ -99,7 +99,7 @@ static size_t prepare_jumps(const chunk_t* chunk, hash_map_t* jump_map) {
     return byte_size;
 }
 
-static size_t parse_bytecode(uint8_t* bytecode, size_t instruction_count, chunk_t* chunk, hash_map_t* labels) {
+size_t parse_bytecode(uint8_t* bytecode, size_t instruction_count, chunk_t* chunk, hash_map_t* labels) {
     size_t byte_size = 0;
     while (instruction_count != 0) {
         switch (bytecode[byte_size]) {
@@ -164,7 +164,7 @@ static size_t parse_bytecode(uint8_t* bytecode, size_t instruction_count, chunk_
     return byte_size;
 }
 
-static uint8_t* parse_constant_pool(uint8_t *file, chunk_t *chunk) {
+uint8_t* parse_constant_pool(uint8_t *file, chunk_t *chunk) {
     // Read size of constant pool
     uint16_t size = READ_2BYTES(file);
     file += 2;
@@ -212,7 +212,7 @@ static uint8_t* parse_constant_pool(uint8_t *file, chunk_t *chunk) {
             case CD_CLASS:
             case CD_SLOT:
             default:
-                fprintf(stderr, "Unknown tag 0x%X for constant object.", *file);
+                fprintf(stderr, "Unknown tag 0x%X for constant object.\n", *file);
                 exit(2);
         }
         size -= 1;
@@ -225,16 +225,31 @@ static uint8_t* parse_constant_pool(uint8_t *file, chunk_t *chunk) {
     return file;
 }
 
+uint8_t* parse_globals(vm_t *vm, chunk_t* chunk, uint8_t* code) {
+    uint16_t globals = READ_2BYTES(code);
+    code += 2;
+    for(uint16_t i = 0; i < globals; ++ i) {
+        uint16_t index = READ_2BYTES(code);
+        // TODO: Here, slots could also be located, but we're not dealing with objects yet.
+        write_global(&chunk->globals, index);
+        hash_map_insert(&vm->global_var, AS_STRING(chunk->pool.data[index]), NULL_VAL);
+        code += 2;
+    }
+    return code;
+}
+
 void parse(vm_t* vm, const char* name) {
     chunk_t chunk;
     init_chunk(&chunk);
     uint8_t *file = read_file(name);
     uint8_t *file_ptr = file;
     file_ptr = parse_constant_pool(file_ptr, &chunk);
-    // For now just skip globals
-    file_ptr += READ_2BYTES(file_ptr) + 2;
+
+    file_ptr = parse_globals(vm, &chunk, file_ptr);
+    // Read entry point
     uint16_t entry_point = READ_2BYTES(file_ptr);
     vm->bytecode = chunk;
+
     vm->ip = &chunk.bytecode[AS_FUNCTION((chunk.pool.data[entry_point]))->entry_point];
     free(file);
 }

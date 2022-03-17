@@ -68,6 +68,17 @@ typedef struct {
     };
 } value_t;
 
+// -------------------------------------
+
+typedef struct {
+    size_t capacity;
+    size_t length;
+    uint16_t* indexes;
+} global_indexes_t;
+
+void init_globals(global_indexes_t* globals);
+void write_global(global_indexes_t* globals, uint16_t index);
+
 obj_string_t* build_obj_string(size_t len, const char* ptr, uint32_t hash);
 
 /// Allocates function object on heap and returns pointer to it, fields of function are zero initialized
@@ -101,7 +112,7 @@ obj_function_t* build_obj_fun();
 #define AS_STRING(value) (((obj_string_t*)AS_OBJ(value)))
 #define AS_CSTRING(value) (((obj_string_t*)AS_OBJ(value))->data)
 
-#define IS_FUNCTION(value) isObjType(value, OBJ_FUN)
+#define IS_FUNCTION(value) (is_obj_type(value, OBJ_FUNCTION))
 #define AS_FUNCTION(value) (((obj_function_t*)AS_OBJ(value)))
 
 #define IS_FALSY(value) ( (IS_BOOL(value) && !AS_BOOL(value)) || IS_NULL(value) )

@@ -14,3 +14,6 @@
 // size_t read_utf8(uint8_t *src, uint8_t *dest) {
 //     if ()
 // }
+
+
+#define NOT_IMPLEMENTED() do { fprintf(stderr, "Not implemented: %s:%d.\n", __FILE__, __LINE__); exit(-1);} while(0)

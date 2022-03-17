@@ -1,32 +1,47 @@
 #include <stdio.h>
 
 #include "include/constant.h"
+#include "include/hashmap.h"
 #include "include/vm.h"
 #include "include/bytecode.h"
 #include "include/memory.h"
 
-void push_frame(call_frames_t* call_frames) {
+call_frame_t* get_top_frame(call_frames_t* call_frames) {
+    return &call_frames->frames[call_frames->length - 1];
+}
+
+call_frame_t* get_global_frame(call_frames_t* call_frames) {
+    return &call_frames->frames[0];
+}
+
+void push_frame(call_frames_t* call_frames, uint8_t* ip) {
     if (call_frames->length >= call_frames->capacity) {
         call_frames->capacity = NEW_CAPACITY(call_frames->capacity);
         call_frames->frames = realloc(call_frames->frames, sizeof(*call_frames->frames) * call_frames->capacity);
     }
 
-    init_hash_map(&call_frames->frames[call_frames->length++]);
+    for(size_t i = 0; i < MAX_LOCALS; ++ i) {
+        call_frames->frames[call_frames->length].locals_vector[i] = NULL_VAL;
+    }
+
+    call_frames->frames[call_frames->length].ip_backup = ip;
+    call_frames->length += 1;
 }
 
-void pop_frame(call_frames_t* call_frames) {
-    free_hash_map(&call_frames->frames[call_frames->length--]);
+uint8_t* pop_frame(call_frames_t* call_frames) {
+    return call_frames->frames[--call_frames->length].ip_backup;
 }
 
-bool find_var(obj_string_t* name, call_frames_t* call_frames, value_t* value) {
-    value_t* val;
-    hash_map_fetch(&call_frames->frames[call_frames->length], name, &value);
+void init_frames(call_frames_t* call_frames)
+{
+    memset(call_frames, 0, sizeof(*call_frames));
 }
 
-bool add_var(obj_string_t* name, call_frames_t* call_frames, value_t* value) {
-
+void free_frames(call_frames_t* call_frames)
+{
+    free(call_frames->frames);
+    init_frames(call_frames);
 }
-
 
 void init_stack(op_stack_t* stack)
 {
@@ -64,12 +79,16 @@ void init_vm(vm_t* vm)
     vm->ip = NULL;
     init_stack(&vm->op_stack);
     init_chunk(&vm->bytecode);
+    init_frames(&vm->frames);
+    init_hash_map(&vm->global_var);
 }
 
 void free_vm(vm_t* vm)
 {
     free_stack(&vm->op_stack);
     free_chunk(&vm->bytecode);
+    free_hash_map(&vm->global_var);
+    free_frames(&vm->frames);
     init_vm(vm);
 }
 
@@ -143,13 +162,52 @@ bool interpret_print(vm_t* vm) {
     return true;
 }
 
+interpret_result_t interpret_function_call(vm_t* vm, obj_function_t *func, uint8_t arg_cnt) {
+    push_frame(&vm->frames, vm->ip);
+    // Populate the new frame with arguments
+    call_frame_t* top_frame = get_top_frame(&vm->frames);
+    for (int i = arg_cnt - 1; i > 0; -- i) {
+        top_frame->locals_vector[i] = pop(&vm->op_stack);
+    }
+
+    // Set instruction pointer to function entry point.
+    vm->ip = &vm->bytecode.bytecode[func->entry_point];
+
+    return INTERPRET_OK;
+}
+
+obj_function_t* get_function(obj_string_t* name, vm_t* vm) {
+    for (uint16_t i = 0; i < vm->bytecode.globals.length; ++ i) {
+        value_t obj = vm->bytecode.pool.data[vm->bytecode.globals.indexes[i]];
+        if (IS_FUNCTION(obj)) {
+            obj_function_t* fun = AS_FUNCTION(obj);
+            const char* fun_name = AS_CSTRING(vm->bytecode.pool.data[fun->name]);
+            if (strcmp(fun_name, name->data) == 0) {
+                return fun;
+            }
+        }
+    }
+
+    fprintf(stderr, "Function with name %s doesn't exist.\n", name->data);
+    exit(51);
+}
+
 interpret_result_t interpret(vm_t* vm)
 {
+    push_frame(&vm->frames, NULL);
+    
     for (;(size_t)(vm->ip - vm->bytecode.bytecode) < vm->bytecode.size;) {
         switch (READ_BYTE_IP(vm)) {
-            case OP_RETURN:
-                return INTERPRET_OK;
+            case OP_RETURN: {
+                uint8_t* old_ip = pop_frame(&vm->frames);
+                // If global frame is popped.
+                if (!old_ip)
+                    return INTERPRET_OK;
+                vm->ip = old_ip;
+            }
             case OP_LABEL:
+                // We have updated jumps,
+                READ_WORD_IP(vm);
                 break;
             case OP_DROP:
                 pop(&vm->op_stack);
@@ -164,16 +222,38 @@ interpret_result_t interpret(vm_t* vm)
                     return INTERPRET_RUNTIME_ERROR;
                 }
                 break;
-            case OP_GET_LOCAL:
-            case OP_SET_LOCAL:
-            case OP_GET_GLOBAL:
-            case OP_SET_GLOBAL:
+            case OP_GET_LOCAL: {
+                uint16_t index = READ_WORD_IP(vm);
+                push(&vm->op_stack, get_top_frame(&vm->frames)->locals_vector[index]);
+                break;
+            }
+            case OP_SET_LOCAL: {
+                uint16_t index = READ_WORD_IP(vm);
+                get_top_frame(&vm->frames)->locals_vector[index] = pop(&vm->op_stack);
+                break;
+            }
+            case OP_GET_GLOBAL: {
+                uint16_t index = READ_WORD_IP(vm);
+                obj_string_t* name = AS_STRING(vm->bytecode.pool.data[index]);
+                value_t val;
+                hash_map_fetch(&vm->global_var, name, &val);
+                push(&vm->op_stack, val);
+                break;
+            }
+            case OP_SET_GLOBAL: {
+                uint16_t index = READ_WORD_IP(vm);
+                obj_string_t* name = AS_STRING(vm->bytecode.pool.data[index]);
+                value_t val = pop(&vm->op_stack);
+                hash_map_update(&vm->global_var, name, val);
+                break;
+            }
+                NOT_IMPLEMENTED();
             case OP_BRANCH: {
                 value_t val = pop(&vm->op_stack);
                 if(IS_FALSY(val)) {
                     break;
                 }
-                // Else fall through
+            // Else fall through
             }
             case OP_JUMP: {
                 size_t index = *vm->ip | (*(vm->ip + 1) << 8) | (*(vm->ip + 2) << 16);
@@ -181,11 +261,26 @@ interpret_result_t interpret(vm_t* vm)
                 break;
             }
             case OP_OBJECT:
+                NOT_IMPLEMENTED();
             case OP_GET_FIELD:
+                NOT_IMPLEMENTED();
             case OP_SET_FIELD:
-            case OP_CALL_FUNCTION:
+                NOT_IMPLEMENTED();
+            case OP_CALL_FUNCTION: {
+                uint16_t index = READ_WORD_IP(vm);
+                obj_string_t* fun_name = AS_STRING(vm->bytecode.pool.data[index]);
+                uint8_t arg_cnt = READ_BYTE_IP(vm);
+                // Fetch function from global pool
+                obj_function_t* fun = get_function(fun_name, vm);
+                interpret_function_call(vm, fun, arg_cnt);
+                break;
+            }
+
             case OP_ARRAY:
-            case OP_CALL_METHOD:
+                NOT_IMPLEMENTED();
+            case OP_CALL_METHOD: {
+                NOT_IMPLEMENTED();
+            }
             default:
                 fprintf(stderr, "Unknown instruction to interpret.\n");
                 return INTERPRET_RUNTIME_ERROR;

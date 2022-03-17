@@ -134,3 +134,17 @@ bool hash_map_delete(hash_map_t* hm, obj_string_t* key) {
     entry->value = BOOL_VAL(true);
     return true;
 }
+
+bool hash_map_update(hash_map_t* hm, obj_string_t* key, value_t new_val) {
+    if (hm->count == 0) {
+        return false;
+    }
+
+    entry_t* entry = hash_map_find_entry(hm->entries, hm->capacity, key);
+    if (entry->key == NULL) {
+        return false;
+    }
+
+    entry->value = new_val;
+    return true;
+}

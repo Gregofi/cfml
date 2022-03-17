@@ -18,3 +18,6 @@ typedef enum {
 } constant_serialization_type_t;
 
 void parse(vm_t* vm, const char* filename);
+uint8_t* parse_globals(vm_t *vm, chunk_t* chunk, uint8_t* code);
+uint8_t* parse_constant_pool(uint8_t *file, chunk_t *chunk);
+size_t parse_bytecode(uint8_t* bytecode, size_t instruction_count, chunk_t* chunk, hash_map_t* labels);

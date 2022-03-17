@@ -33,3 +33,5 @@ bool hash_map_insert(hash_map_t* hm, obj_string_t* key, value_t value);
 bool hash_map_fetch(hash_map_t* hm, obj_string_t* key, value_t* value);
 
 bool hash_map_delete(hash_map_t* hm, obj_string_t* key);
+
+bool hash_map_update(hash_map_t* hm, obj_string_t* key, value_t new_val);

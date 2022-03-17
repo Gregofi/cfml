@@ -46,7 +46,6 @@ TEST(DataStructureTest) {
 }
 
 
-
 int main(void) {
     RUN_TEST(DataStructureTest);
 }

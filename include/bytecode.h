@@ -31,6 +31,7 @@ typedef struct {
     size_t capacity;
     size_t offset;
     constant_pool_t pool;
+    global_indexes_t globals;
 } chunk_t;
 
 void init_chunk(chunk_t* chunk);
