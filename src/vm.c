@@ -171,7 +171,7 @@ interpret_result_t interpret_function_call(vm_t* vm, obj_function_t *func, uint8
     push_frame(&vm->frames, vm->ip);
     // Populate the new frame with arguments
     call_frame_t* top_frame = get_top_frame(&vm->frames);
-    for (int i = arg_cnt - 1; i > 0; -- i) {
+    for (int i = arg_cnt - 1; i >= 0; -- i) {
         top_frame->locals_vector[i] = pop(&vm->op_stack);
     }
 
