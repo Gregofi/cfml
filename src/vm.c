@@ -259,6 +259,7 @@ interpret_result_t interpret(vm_t* vm)
             case OP_BRANCH: {
                 value_t val = pop(&vm->op_stack);
                 if(IS_FALSY(val)) {
+                    vm->ip += 3;
                     break;
                 }
             // Else fall through

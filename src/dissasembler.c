@@ -36,8 +36,12 @@ size_t dissasemble_instruction(chunk_t* chunk, size_t offset) {
                 return index_instruction("OP_GET_GLOBAL", chunk->bytecode, offset);
             case OP_SET_GLOBAL:
                 return index_instruction("OP_SET_GLOBAL", chunk->bytecode, offset);
-            case OP_LABEL:
-                return index_instruction("OP_LABEL", chunk->bytecode, offset);
+            case OP_LABEL: {
+                uint16_t index = READ_2BYTES(chunk->bytecode + offset + 1);
+                const char* label_name = AS_CSTRING(chunk->pool.data[index]);
+                printf("OP_LABEL: %s", label_name);
+                return offset + 3;
+            }
             case OP_OBJECT:
                 return index_instruction("OP_OBJECT", chunk->bytecode, offset);
             case OP_GET_FIELD:
