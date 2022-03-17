@@ -7,6 +7,7 @@
 #include "include/constant.h"
 #include "include/memory.h"
 #include "include/vm.h"
+#include "include/dissasembler.h"
 
 static uint8_t* read_file(const char* name) {
     size_t size = 0, bytes_read = 0;
@@ -46,8 +47,7 @@ FILE_ERROR:
 }
 
 /// Single pass through the entire bytecode to prepare jumping instructions.
-static size_t prepare_jumps(const chunk_t* chunk, hash_map_t* jump_map) {
-    size_t byte_size = 0;
+static void prepare_jumps(const chunk_t* chunk, hash_map_t* jump_map) {
     for (size_t i = 0; i < chunk->size;) {
         switch (chunk->bytecode[i]) {
             // one byte instructions
@@ -87,20 +87,22 @@ static size_t prepare_jumps(const chunk_t* chunk, hash_map_t* jump_map) {
                     exit(54);
                 }
                 
-                chunk->bytecode[i] = (uint8_t)(row.num >> 16);
-                chunk->bytecode[i] = (uint8_t)(row.num >> 8);
-                chunk->bytecode[i] = (uint8_t)row.num;
+                chunk->bytecode[i + 1] = (uint8_t)(row.num >> 16);
+                chunk->bytecode[i + 2] = (uint8_t)(row.num >> 8);
+                chunk->bytecode[i + 3] = (uint8_t)row.num;
+                i += 4;
+                break;
             }
             default:
-                fprintf(stderr, "Unknown instruction '0x%X' to serialize.\n", chunk->bytecode[i]);
+                fprintf(stderr, "Unknown instruction '0x%X' to serialize in jumps prepare.\n", chunk->bytecode[i]);
                 break;
         }
     }
-    return byte_size;
 }
 
-size_t parse_bytecode(uint8_t* bytecode, size_t instruction_count, chunk_t* chunk, hash_map_t* labels) {
+size_t_pair_t parse_bytecode(uint8_t* bytecode, size_t instruction_count, chunk_t* chunk, hash_map_t* labels) {
     size_t byte_size = 0;
+    size_t jumps_cnt = 0;
     while (instruction_count != 0) {
         switch (bytecode[byte_size]) {
             // one byte instructions
@@ -142,6 +144,7 @@ size_t parse_bytecode(uint8_t* bytecode, size_t instruction_count, chunk_t* chun
                 write_chunk(chunk, bytecode[byte_size]);
                 write_chunk(chunk, bytecode[byte_size + 1]);
                 write_chunk(chunk, bytecode[byte_size + 2]);
+                byte_size += 3;
                 break;
             }
             // Jump instructions will receive their destination in another pass
@@ -152,7 +155,8 @@ size_t parse_bytecode(uint8_t* bytecode, size_t instruction_count, chunk_t* chun
                 write_chunk(chunk, bytecode[byte_size + 1]);
                 write_chunk(chunk, bytecode[byte_size + 2]);
                 write_chunk(chunk, 0xFF); // Dummy value
-                byte_size += 4;
+                byte_size += 3;
+                jumps_cnt += 1;
                 break;
 
             default:
@@ -161,7 +165,7 @@ size_t parse_bytecode(uint8_t* bytecode, size_t instruction_count, chunk_t* chun
         }
         instruction_count -= 1;
     }
-    return byte_size;
+    return (size_t_pair_t){byte_size, byte_size + jumps_cnt};
 }
 
 uint8_t* parse_constant_pool(uint8_t *file, chunk_t *chunk) {
@@ -202,9 +206,9 @@ uint8_t* parse_constant_pool(uint8_t *file, chunk_t *chunk) {
 
                 uint32_t bytecode_length = READ_4BYTES(file + 6);
                 // Read the bytecode and update the length to bytes instead of instruction count
-                bytecode_length = parse_bytecode(file + 10, bytecode_length, chunk, &labels);
-                fun_obj->length = bytecode_length;
-                file += 10 + bytecode_length;
+                size_t_pair_t p = parse_bytecode(file + 10, bytecode_length, chunk, &labels);
+                fun_obj->length = p.second;
+                file += 10 + p.first;
                 add_constant(&chunk->pool, fun);
 
                 break;

@@ -53,7 +53,7 @@ static entry_t* hash_map_find_entry(entry_t* entries, size_t capacity, obj_strin
             }
         // Comparing by pointers, this is okay since
         // strings in constant pool are always the same
-        } else if (entry->key == key) {
+        } else if (strcmp(entry->key->data, key->data) == 0) {
             return entry;
         }
 

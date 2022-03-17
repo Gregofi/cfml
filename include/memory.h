@@ -1,4 +1,5 @@
 #pragma once
+#include "stdlib.h"
 
 #define ARRAY_GROW_FACTOR 2
 #define INIT_ARRAY_SIZE 8
@@ -15,5 +16,9 @@
 //     if ()
 // }
 
-
 #define NOT_IMPLEMENTED() do { fprintf(stderr, "Not implemented: %s:%d.\n", __FILE__, __LINE__); exit(-1);} while(0)
+
+typedef struct {
+    size_t first;
+    size_t second;
+} size_t_pair_t;
