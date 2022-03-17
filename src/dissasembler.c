@@ -5,7 +5,7 @@
 #include "include/memory.h"
 
 static size_t simple_instruction(const char *name, size_t offset) {
-    printf("%s\n", name);
+    printf("%s", name);
     return offset + 1;
 }
 
@@ -38,16 +38,28 @@ size_t dissasemble_instruction(chunk_t* chunk, size_t offset) {
                 return index_instruction("OP_SET_GLOBAL", chunk->bytecode, offset);
             case OP_LABEL:
                 return index_instruction("OP_LABEL", chunk->bytecode, offset);
-            case OP_JUMP:
-                return index_instruction("OP_GET_LOCAL", chunk->bytecode, offset);
-            case OP_BRANCH:
-                return index_instruction("OP_BRANCH", chunk->bytecode, offset);
             case OP_OBJECT:
                 return index_instruction("OP_OBJECT", chunk->bytecode, offset);
             case OP_GET_FIELD:
                 return index_instruction("OP_GET_FIELD", chunk->bytecode, offset);
             case OP_SET_FIELD:
                 return index_instruction("OP_SET_FIELD", chunk->bytecode, offset);
+            case OP_JUMP: {
+                printf("OP_JUMP ");
+                uint32_t index = chunk->bytecode[offset + 1] << 16 
+                               | chunk->bytecode[offset + 2] << 8 
+                               | chunk->bytecode[offset + 3];
+                printf("%04d", index);
+                return offset + 4;
+            }
+            case OP_BRANCH: {
+                printf("OP_BRANCH ");
+                uint32_t index = chunk->bytecode[offset + 1] << 16 
+                               | chunk->bytecode[offset + 2] << 8 
+                               | chunk->bytecode[offset + 3];
+                printf("%04d", index);
+                return offset + 4;
+            }
             case OP_CALL_FUNCTION:
                 printf("OP_CALL_FUNCTION");
                 return offset + 4;
@@ -58,7 +70,7 @@ size_t dissasemble_instruction(chunk_t* chunk, size_t offset) {
                 printf("OP_CALL_METHOD");
                 return offset + 4;
             default:
-                fprintf(stderr, "Unknown instruction to dissasemble");
+                fprintf(stderr, "Unknown instruction with code '0x%X' to dissasemble.\n", opcode);
                 exit(53);
     }
 }
