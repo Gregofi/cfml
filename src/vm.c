@@ -256,7 +256,7 @@ interpret_result_t interpret(vm_t* vm)
             // Else fall through
             }
             case OP_JUMP: {
-                size_t index = *vm->ip | (*(vm->ip + 1) << 8) | (*(vm->ip + 2) << 16);
+                size_t index = *vm->ip << 16 | *(vm->ip + 1) << 8 | *(vm->ip + 2);
                 vm->ip = &vm->bytecode.bytecode[index];
                 break;
             }
