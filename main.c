@@ -4,13 +4,13 @@
 #include "include/dissasembler.h"
 
 int main(int argc, const char* argv[]) {
-    if (argc < 2) {
-        fprintf(stderr, "Usage: %s file\n", argv[0]);
+    if (argc < 3) {
+        fprintf(stderr, "Usage: %s command file\n", argv[0]);
         exit(2);
     }
     vm_t vm;
     init_vm(&vm);
-    parse(&vm, argv[1]);
+    parse(&vm, argv[2]);
 
 #ifdef __DEBUG__
     dissasemble_chunk(&vm.bytecode, "main chunk");
