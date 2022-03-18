@@ -33,9 +33,20 @@ void dissasemble_value(value_t val) {
                 case OBJ_STRING:
                     printf(">%s<", AS_CSTRING(val));
                     break;
-                case OBJ_ARRAY:
-                    printf("Array");
+                case OBJ_ARRAY: {
+                    obj_array_t* arr = AS_ARRAY(val);
+                    printf("Array %lu { ", arr->size);
+                    for (size_t i = 0; i < arr->size; ++ i) {
+                        dissasemble_value(arr->values[i]);
+                        if (i != arr->size - 1) {
+                            printf(", ");
+                        }
+                    }
+                    printf(" }");
                     break;
+                }
+                    
+                    
                 case OBJ_SLOT:
                     printf("Slot %d", AS_SLOT(val)->index);
                     break;
@@ -49,6 +60,7 @@ void dissasemble_value(value_t val) {
                     printf("Unknown object");
                     break;
             }
+            break;
         }
         default:
             printf("Unknown type");

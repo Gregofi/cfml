@@ -79,3 +79,13 @@ obj_slot_t* build_obj_slot(uint16_t index) {
 bool is_obj_type(value_t val, obj_type_t type) {
     return IS_OBJ(val) && AS_OBJ(val)->type == type;
 }
+
+obj_array_t* build_obj_array(size_t size, value_t init) {
+    obj_array_t* obj = malloc(sizeof(*obj) + size * sizeof(*obj->values));
+    obj->size = size;
+    obj->obj = (obj_t){.type = OBJ_ARRAY};
+    for (size_t i = 0; i < size; ++ i) {
+        obj->values[i] = init;
+    }
+    return obj;
+}

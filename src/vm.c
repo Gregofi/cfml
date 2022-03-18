@@ -288,8 +288,14 @@ interpret_result_t interpret(vm_t* vm)
                 break;
             }
 
-            case OP_ARRAY:
-                NOT_IMPLEMENTED();
+            case OP_ARRAY: {
+                value_t init = pop(&vm->op_stack);
+                value_t size = pop(&vm->op_stack);
+
+                value_t array = OBJ_ARRAY_VAL(AS_NUMBER(size), init);
+                push(&vm->op_stack, array);
+                break;
+            }
             case OP_CALL_METHOD: {
                 NOT_IMPLEMENTED();
             }

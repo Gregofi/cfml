@@ -33,7 +33,18 @@ typedef enum {
 
 // ------------- OBJECTS --------------
 
+typedef struct obj obj_t;
+
 typedef struct {
+    constant_type_t type;
+    union {
+        int num;
+        bool b;
+        struct obj* obj;
+    };
+} value_t;
+
+typedef struct obj {
     obj_type_t type;
 } obj_t;
 
@@ -63,16 +74,11 @@ typedef struct {
     uint16_t index;
 } obj_slot_t;
 
-// -------------------------------------
-
 typedef struct {
-    constant_type_t type;
-    union {
-        int num;
-        bool b;
-        obj_t* obj;
-    };
-} value_t;
+    obj_t obj;
+    size_t size;
+    value_t values[];
+} obj_array_t;
 
 // -------------------------------------
 
@@ -81,6 +87,7 @@ typedef struct {
     size_t length;
     uint16_t* indexes;
 } global_indexes_t;
+
 
 void init_globals(global_indexes_t* globals);
 void write_global(global_indexes_t* globals, uint16_t index);
@@ -94,6 +101,8 @@ obj_function_t* build_obj_fun();
 
 obj_slot_t* build_obj_slot(uint16_t index);
 
+obj_array_t* build_obj_array(size_t size, value_t init);
+
 // 'Constructor' functions for values.
 #define INTEGER_VAL(value) ((value_t){TYPE_INTEGER, {.num = (value)}})
 #define BOOL_VAL(value)    ((value_t){TYPE_BOOLEAN, {.b = (value)}})
@@ -106,6 +115,7 @@ obj_slot_t* build_obj_slot(uint16_t index);
 #define OBJ_STRING_VAL(len, source, hash) (OBJ_VAL((build_obj_string((len), (source), (hash)))))
 #define OBJ_FUN_VAL() (OBJ_VAL((build_obj_fun())))
 #define OBJ_SLOT_VAL(index) OBJ_VAL(build_obj_slot(index))
+#define OBJ_ARRAY_VAL(size, init) OBJ_VAL(build_obj_array((size), (init)))
 
 #define IS_NUMBER(value) ((value).type == TYPE_INTEGER)
 #define IS_BOOL(value) ((value).type == TYPE_BOOLEAN)
@@ -127,6 +137,9 @@ obj_slot_t* build_obj_slot(uint16_t index);
 
 #define IS_SLOT(value) (is_obj_type((value), OBJ_SLOT))
 #define AS_SLOT(value) (((obj_slot_t*)AS_OBJ(value)))
+
+#define IS_ARRAY(value) (is_obj_type((value), OBJ_ARRAY))
+#define AS_ARRAY(value) (((obj_array_t*)AS_OBJ(value)))
 
 #define IS_FALSY(value) ( (IS_BOOL(value) && !AS_BOOL(value)) || IS_NULL(value) )
 

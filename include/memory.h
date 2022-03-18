@@ -11,7 +11,7 @@
             | ((*(uint8_t*)(value + 2)) << 16) | ((*(uint8_t*)(value + 3)) << 24))
 #define READ_BYTE(value) (*((uint8_t*)((value))))
 
-#define NOT_IMPLEMENTED() do { fprintf(stderr, "Not implemented: %s:%d.\n", __FILE__, __LINE__); exit(-1);} while(0)
+#define NOT_IMPLEMENTED() do { fprintf(stderr, "Runtime error: Not implemented: %s:%d.\n", __FILE__, __LINE__); exit(-1);} while(0)
 
 typedef struct {
     size_t first;
