@@ -240,9 +240,13 @@ uint8_t* parse_globals(vm_t *vm, chunk_t* chunk, uint8_t* code) {
         uint16_t index = READ_2BYTES(code);
         // TODO: Here, slots could also be located, but we're not dealing with objects yet.
         write_global(&chunk->globals, index);
-        
-        uint16_t index_slot = AS_SLOT(chunk->pool.data[index])->index;
-        hash_map_insert(&vm->global_var, AS_STRING(chunk->pool.data[index_slot]), NULL_VAL);
+        if (IS_SLOT(chunk->pool.data[index])) {
+            uint16_t index_slot = AS_SLOT(chunk->pool.data[index])->index;
+            hash_map_insert(&vm->global_var, AS_STRING(chunk->pool.data[index_slot]), NULL_VAL);
+        } else if (IS_FUNCTION(chunk->pool.data[index])) {
+            value_t fun = chunk->pool.data[index];
+            hash_map_insert(&vm->global_var, AS_STRING(chunk->pool.data[AS_FUNCTION(fun)->name]), fun);
+        }
         code += 2;
     }
     return code;

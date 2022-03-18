@@ -187,19 +187,9 @@ interpret_result_t interpret_function_call(vm_t* vm, obj_function_t *func, uint8
 }
 
 obj_function_t* get_function(obj_string_t* name, vm_t* vm) {
-    for (uint16_t i = 0; i < vm->bytecode.globals.length; ++ i) {
-        value_t obj = vm->bytecode.pool.data[vm->bytecode.globals.indexes[i]];
-        if (IS_FUNCTION(obj)) {
-            obj_function_t* fun = AS_FUNCTION(obj);
-            const char* fun_name = AS_CSTRING(vm->bytecode.pool.data[fun->name]);
-            if (strcmp(fun_name, name->data) == 0) {
-                return fun;
-            }
-        }
-    }
-
-    fprintf(stderr, "Function with name %s doesn't exist.\n", name->data);
-    exit(51);
+    value_t fun;
+    hash_map_fetch(&vm->global_var, name, &fun);
+    return AS_FUNCTION(fun); 
 }
 
 interpret_result_t interpret(vm_t* vm)
