@@ -168,7 +168,7 @@ size_t_pair_t parse_bytecode(uint8_t* bytecode, size_t instruction_count, chunk_
     return (size_t_pair_t){byte_size, byte_size + jumps_cnt};
 }
 
-uint8_t* parse_constant_pool(uint8_t *file, chunk_t *chunk) {
+uint8_t* parse_constant_pool(vm_t* vm, uint8_t *file, chunk_t *chunk) {
     // Read size of constant pool
     uint16_t size = READ_2BYTES(file);
     file += 2;
@@ -210,15 +210,20 @@ uint8_t* parse_constant_pool(uint8_t *file, chunk_t *chunk) {
                 fun_obj->length = p.second;
                 file += 10 + p.first;
                 add_constant(&chunk->pool, fun);
-
+                // Add function to global map
+                hash_map_insert(&vm->global_var, AS_STRING(chunk->pool.data[fun_obj->name]), fun);
                 break;
             }
             case CD_CLASS:
                 NOT_IMPLEMENTED();
-            case CD_SLOT:
-                add_constant(&chunk->pool, OBJ_SLOT_VAL(READ_2BYTES(file + 1)));
+            case CD_SLOT: {
+                value_t slot = OBJ_SLOT_VAL(READ_2BYTES(file + 1));
+                add_constant(&chunk->pool, slot);
+                // Either global or field, add it to globals
+                hash_map_insert(&vm->global_var, AS_STRING(chunk->pool.data[AS_SLOT(slot)->index]), NULL_VAL);
                 file += 3;
                 break;
+            }
             default:
                 fprintf(stderr, "Unknown tag 0x%X for constant object.\n", *file);
                 exit(2);
@@ -238,15 +243,7 @@ uint8_t* parse_globals(vm_t *vm, chunk_t* chunk, uint8_t* code) {
     code += 2;
     for(uint16_t i = 0; i < globals; ++ i) {
         uint16_t index = READ_2BYTES(code);
-        // TODO: Here, slots could also be located, but we're not dealing with objects yet.
         write_global(&chunk->globals, index);
-        if (IS_SLOT(chunk->pool.data[index])) {
-            uint16_t index_slot = AS_SLOT(chunk->pool.data[index])->index;
-            hash_map_insert(&vm->global_var, AS_STRING(chunk->pool.data[index_slot]), NULL_VAL);
-        } else if (IS_FUNCTION(chunk->pool.data[index])) {
-            value_t fun = chunk->pool.data[index];
-            hash_map_insert(&vm->global_var, AS_STRING(chunk->pool.data[AS_FUNCTION(fun)->name]), fun);
-        }
         code += 2;
     }
     return code;
@@ -257,7 +254,7 @@ void parse(vm_t* vm, const char* name) {
     init_chunk(&chunk);
     uint8_t *file = read_file(name);
     uint8_t *file_ptr = file;
-    file_ptr = parse_constant_pool(file_ptr, &chunk);
+    file_ptr = parse_constant_pool(vm, file_ptr, &chunk);
 
     file_ptr = parse_globals(vm, &chunk, file_ptr);
     // Read entry point
