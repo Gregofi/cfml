@@ -101,16 +101,20 @@ void free_vm(vm_t* vm)
 #define READ_WORD_IP(vm) ((vm)->ip += 2, (*((vm)->ip - 2) | (*((vm)->ip - 1) << 8)))
 
 bool interpret_print(vm_t* vm) {
+    // For some stupid reason, the first popped value should be printed last.
+    // Yes, it is very stupid. The person who thought of this is bad and should feel bad.
     value_t obj = vm->bytecode.pool.data[READ_WORD_IP(vm)];
     if (!IS_STRING(obj)) {
         fprintf(stderr, "Print keyword accepts only string as it's first argument.\n");
         return false;
     }
     const char* str = AS_CSTRING(obj);
-    uint8_t arg_count = READ_BYTE_IP(vm);
+    int16_t index = READ_BYTE_IP(vm);
+    vm->op_stack.size -= index;
+    int16_t i = 0;
     for(const char* ptr = str; *ptr != '\0'; ptr ++) {
         if (*ptr == '~') {
-            value_t val = pop(&vm->op_stack);
+            value_t val = vm->op_stack.data[vm->op_stack.size + i];
             switch (val.type) {
                 case TYPE_INTEGER:
                     printf("%d", AS_NUMBER(val));
@@ -127,7 +131,7 @@ bool interpret_print(vm_t* vm) {
                     fprintf(stderr, "Uknown value type to print.\n");
                     return false;
             }
-            arg_count -= 1;
+            i += 1;
         } else if (*ptr == '\\') {
             ptr += 1;
             switch (*ptr) {
@@ -158,7 +162,7 @@ bool interpret_print(vm_t* vm) {
         }
     }
 
-    if (arg_count != 0) {
+    if (index != i) {
         fprintf(stderr, "Wrong number of arguments to print statement.\n");
         return false;
     }
