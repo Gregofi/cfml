@@ -2,7 +2,9 @@
 #include <strings.h>
 
 #include "include/bytecode.h"
+#include "include/constant.h"
 #include "include/memory.h"
+#include "include/vm.h"
 
 static size_t simple_instruction(const char *name, size_t offset) {
     printf("%s", name);
@@ -14,6 +16,64 @@ static size_t index_instruction(const char* name, uint8_t* bytecode, size_t offs
     printf("%s %04d", name, READ_2BYTES(bytecode + offset + 1));
     return offset + 3;
 }
+
+void dissasemble_value(value_t val) {
+    switch (val.type) {
+        case TYPE_NULL:
+            printf("null");
+            break;
+        case TYPE_BOOLEAN:
+            printf("%s", val.b ? "true" : "false");
+            break;
+        case TYPE_INTEGER:
+            printf("Int: %d", val.num);
+            break;
+        case TYPE_OBJECT: {
+            switch (val.obj->type) {
+                case OBJ_STRING:
+                    printf(">%s<", AS_CSTRING(val));
+                    break;
+                case OBJ_ARRAY:
+                    printf("Array");
+                    break;
+                case OBJ_SLOT:
+                    printf("Slot %d", AS_SLOT(val)->index);
+                    break;
+                case OBJ_FUNCTION:
+                    printf("Object");
+                    break;
+                case OBJ_CLASS:
+                    printf("Class");
+                    break;
+                default:
+                    printf("Unknown object");
+                    break;
+            }
+        }
+        default:
+            printf("Unknown type");
+            break;
+    }
+}
+
+void dissasemble_stack(op_stack_t* op_stack) {
+    for (ssize_t i = op_stack->size - 1; i >= 0; -- i) {
+        printf("[ ");
+        dissasemble_value(op_stack->data[i]);
+        printf(" ]");
+    }
+
+    if (op_stack->size != 0) {
+        puts("");
+    }
+}
+
+void dissasemble_frames(call_frames_t* frames) {
+    for (size_t i = 0; i < frames->length; ++ i) {
+        NOT_IMPLEMENTED();
+    }
+}
+
 
 size_t dissasemble_instruction(chunk_t* chunk, size_t offset) {
     printf("%04ld ", offset);
@@ -49,19 +109,23 @@ size_t dissasemble_instruction(chunk_t* chunk, size_t offset) {
             case OP_SET_FIELD:
                 return index_instruction("OP_SET_FIELD", chunk->bytecode, offset);
             case OP_JUMP: {
-                printf("OP_JUMP ");
+                printf("%-10s", "OP_JUMP ");
                 uint32_t index = chunk->bytecode[offset + 1] << 16 
                                | chunk->bytecode[offset + 2] << 8 
                                | chunk->bytecode[offset + 3];
-                printf("%04d", index);
+                uint16_t string_index = READ_2BYTES(chunk->bytecode + index + 1);
+                const char* label_name = AS_CSTRING(chunk->pool.data[string_index]);
+                printf("%04d %30s", index, label_name);
                 return offset + 4;
             }
             case OP_BRANCH: {
-                printf("OP_BRANCH ");
+                printf("%-10s", "OP_BRANCH ");
                 uint32_t index = chunk->bytecode[offset + 1] << 16 
                                | chunk->bytecode[offset + 2] << 8 
                                | chunk->bytecode[offset + 3];
-                printf("%04d", index);
+                uint16_t string_index = READ_2BYTES(chunk->bytecode + index + 1);
+                const char* label_name = AS_CSTRING(chunk->pool.data[string_index]);
+                printf("%04d %30s", index, label_name);
                 return offset + 4;
             }
             case OP_CALL_FUNCTION:

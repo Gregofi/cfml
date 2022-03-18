@@ -17,3 +17,7 @@ typedef struct {
     size_t first;
     size_t second;
 } size_t_pair_t;
+
+#define GREEN_COLOR_TERMINAL "\033[0;32m"
+#define RED_COLOR_TERMINAL "\033[0;31m"
+#define CLEAR_COLOR_TERMINAL "\033[0;0m"

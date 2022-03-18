@@ -200,10 +200,12 @@ obj_function_t* get_function(obj_string_t* name, vm_t* vm) {
 interpret_result_t interpret(vm_t* vm)
 {
     push_frame(&vm->frames, NULL);
-    
     for (;(size_t)(vm->ip - vm->bytecode.bytecode) < vm->bytecode.size;) {
+#ifdef __DEBUG__
         dissasemble_instruction(&vm->bytecode, vm->ip - vm->bytecode.bytecode);
         puts("");
+        dissasemble_stack(&vm->op_stack);
+#endif // __DEBUG__
         switch (READ_BYTE_IP(vm)) {
             case OP_RETURN: {
                 uint8_t* old_ip = pop_frame(&vm->frames);
