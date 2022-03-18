@@ -12,9 +12,12 @@ int main(int argc, const char* argv[]) {
     init_vm(&vm);
     parse(&vm, argv[1]);
 
+#ifdef __DEBUG__
     dissasemble_chunk(&vm.bytecode, "main chunk");
     fflush(stdout);
     puts("After parsing.\n");
+#endif
+
     interpret_result_t result = interpret(&vm);
     if (result == INTERPRET_RUNTIME_ERROR) {
         fprintf(stderr, "Fatal: Runtime error occured.\n");
