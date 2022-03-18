@@ -122,6 +122,7 @@ bool interpret_print(vm_t* vm) {
                     printf(AS_BOOL(val) ? "true" : "false");
                     break;
                 case TYPE_OBJECT:
+                    printf("Some kind of object :))))");
                 default:
                     fprintf(stderr, "Uknown value type to print.\n");
                     return false;
@@ -204,7 +205,6 @@ interpret_result_t interpret(vm_t* vm)
 #ifdef __DEBUG__
         dissasemble_instruction(&vm->bytecode, vm->ip - vm->bytecode.bytecode);
         puts("");
-        dissasemble_stack(&vm->op_stack);
 #endif // __DEBUG__
         switch (READ_BYTE_IP(vm)) {
             case OP_RETURN: {
@@ -304,6 +304,9 @@ interpret_result_t interpret(vm_t* vm)
                 return INTERPRET_RUNTIME_ERROR;
 
         }
+#ifdef __DEBUG__
+        dissasemble_stack(&vm->op_stack);
+#endif //__DEBUG__
     }
     return INTERPRET_OK;
 }
