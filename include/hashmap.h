@@ -5,8 +5,8 @@
 #include <stdbool.h>
 #include <stdio.h>
 
-#include "include/constant.h"
 #include "include/memory.h"
+#include "include/constant.h"
 
 #define HASH_MAP_LOAD_BALACE 0.8
 

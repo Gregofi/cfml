@@ -8,6 +8,7 @@
 #include "include/memory.h"
 #include "include/vm.h"
 #include "include/dissasembler.h"
+#include "include/objects.h"
 
 static uint8_t* read_file(const char* name) {
     size_t size = 0, bytes_read = 0;
@@ -168,6 +169,13 @@ size_t_pair_t parse_bytecode(uint8_t* bytecode, size_t instruction_count, chunk_
     return (size_t_pair_t){byte_size, byte_size + jumps_cnt};
 }
 
+int compare_strings(const void *x, const void *y) {
+    const obj_string_t* str_x = *(obj_string_t**)x;
+    const obj_string_t* str_y = *(obj_string_t**)y;
+
+    return strcmp(str_x->data, str_y->data);
+}
+
 uint8_t* parse_constant_pool(vm_t* vm, uint8_t *file, chunk_t *chunk) {
     // Read size of constant pool
     uint16_t size = READ_2BYTES(file);
@@ -214,8 +222,31 @@ uint8_t* parse_constant_pool(vm_t* vm, uint8_t *file, chunk_t *chunk) {
                 hash_map_insert(&vm->global_var, AS_STRING(chunk->pool.data[fun_obj->name]), fun);
                 break;
             }
-            case CD_CLASS:
-                NOT_IMPLEMENTED();
+            case CD_CLASS: {
+                uint16_t members_cnt = READ_2BYTES(file + 1);
+                value_t class = OBJ_CLASS_VAL();
+                obj_class_t* as_class = AS_CLASS(class);
+                // Save methods and member variables
+                file += 3;
+                for (size_t i = 0; i < members_cnt; ++ i) {
+                    uint16_t index = READ_2BYTES(file);
+                    file += 2;
+                    if (IS_FUNCTION(chunk->pool.data[index])) {
+                        obj_function_t* fun = AS_FUNCTION(chunk->pool.data[index]);
+                        hash_map_insert(&as_class->methods, AS_STRING(chunk->pool.data[fun->name]), chunk->pool.data[index]);
+                    } else if (IS_SLOT(chunk->pool.data[index])) {
+                        obj_slot_t* slot = AS_SLOT(chunk->pool.data[index]);
+                        obj_string_t* name = AS_STRING(chunk->pool.data[slot->index]);
+                        as_class->fields[as_class->size++] = name;
+                    } else {
+                        fprintf(stderr, "Wrong object type on function.\n");
+                        exit(8);
+                    }
+                }
+                // qsort(as_class->fields, as_class->size, sizeof(*as_class->fields), compare_strings);
+                add_constant(&chunk->pool, class);
+                break;
+            }
             case CD_SLOT: {
                 value_t slot = OBJ_SLOT_VAL(READ_2BYTES(file + 1));
                 add_constant(&chunk->pool, slot);

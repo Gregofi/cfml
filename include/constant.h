@@ -5,16 +5,6 @@
 #include <string.h>
 #include <stdint.h>
 
-// typedef enum {
-//     C_INTEGER = 0x00,
-//     C_NULL = 0x01,
-//     C_STRING = 0x02,
-//     C_METHOD = 0x03,
-//     C_SLOT = 0x04,
-//     C_CLASS = 0x05,
-//     C_BOOLEAN = 0x06,
-// } constant_serialization_type_t;
-
 
 typedef enum {
     TYPE_INTEGER,
@@ -28,6 +18,8 @@ typedef enum {
     OBJ_ARRAY,
     OBJ_CLASS,
     OBJ_FUNCTION,
+    OBJ_NATIVE,
+    OBJ_INSTANCE,
     OBJ_SLOT,
 } obj_type_t;
 
@@ -80,6 +72,13 @@ typedef struct {
     value_t values[];
 } obj_array_t;
 
+typedef value_t (*native_fun_t)(int argCount, value_t* args);
+
+typedef struct {
+    obj_t obj;
+    native_fun_t fun;
+} obj_native_fun_t;
+
 // -------------------------------------
 
 typedef struct {
@@ -102,6 +101,8 @@ obj_function_t* build_obj_fun();
 obj_slot_t* build_obj_slot(uint16_t index);
 
 obj_array_t* build_obj_array(size_t size, value_t init);
+
+obj_native_fun_t* build_obj_native(native_fun_t fun);
 
 // 'Constructor' functions for values.
 #define INTEGER_VAL(value) ((value_t){TYPE_INTEGER, {.num = (value)}})
@@ -140,6 +141,9 @@ obj_array_t* build_obj_array(size_t size, value_t init);
 
 #define IS_ARRAY(value) (is_obj_type((value), OBJ_ARRAY))
 #define AS_ARRAY(value) (((obj_array_t*)AS_OBJ(value)))
+
+#define IS_NATIVE(value) (is_obj_type((value), OBJ_NATIVE))
+#define AS_NATIVE(value) (((obj_native_fun_t*)AS_OBJ(value)))
 
 #define IS_FALSY(value) ( (IS_BOOL(value) && !AS_BOOL(value)) || IS_NULL(value) )
 

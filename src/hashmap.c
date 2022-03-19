@@ -9,6 +9,7 @@
 #include "include/constant.h"
 #include "include/memory.h"
 #include "include/hashmap.h"
+#include "include/dissasembler.h"
 
 #define IS_GRAVE(node) ((node)->key == NULL && IS_BOOL((node)->value) && AS_BOOL((node)->value))
 
@@ -91,8 +92,16 @@ static void hash_map_resize(hash_map_t *hm, size_t capacity) {
 }
 
 bool hash_map_insert(hash_map_t* hm, obj_string_t* key, value_t value) {
-    assert(key->obj.type == OBJ_STRING);
-    
+#ifdef __DEBUG__
+    if (key->obj.type != OBJ_STRING) {
+        fprintf(stderr, "Hashmap key is '");
+        dissasemble_object(stderr, &key->obj);
+        fprintf(stderr, "' with value '");
+        dissasemble_value(stderr, value);
+        fprintf(stderr, "', expected string.\n");
+        exit(33);
+    }
+#endif
     if (hm->count >= hm->capacity) {
         hash_map_resize(hm, NEW_CAPACITY(hm->capacity));
     }

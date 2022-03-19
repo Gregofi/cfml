@@ -17,53 +17,58 @@ static size_t index_instruction(const char* name, uint8_t* bytecode, size_t offs
     return offset + 3;
 }
 
-void dissasemble_value(value_t val) {
+void dissasemble_value(FILE* stream, value_t val);
+
+void dissasemble_object(FILE* stream, obj_t* obj) {
+    switch (obj->type) {
+        case OBJ_STRING:
+            fprintf(stream, ">%s<", ((obj_string_t*)obj)->data);
+            break;
+        case OBJ_ARRAY: {
+            obj_array_t* arr = (obj_array_t*)(obj);
+            fprintf(stream, "Array %lu { ", arr->size);
+            for (size_t i = 0; i < arr->size; ++ i) {
+                dissasemble_value(stream, arr->values[i]);
+                if (i != arr->size - 1) {
+                    fprintf(stream, ", ");
+                }
+            }
+            fprintf(stream, " }");
+            break;
+        }
+        case OBJ_SLOT:
+            fprintf(stream, "Slot %d", ((obj_slot_t*)obj)->index);
+            break;
+        case OBJ_FUNCTION:
+            fprintf(stream, "Object");
+            break;
+        case OBJ_INSTANCE:
+            fprintf(stream, "Instance of object");
+            break;
+        default:
+            fprintf(stream, "Unknown object");
+            break;
+    }
+
+}
+
+void dissasemble_value(FILE* stream, value_t val) {
     switch (val.type) {
         case TYPE_NULL:
-            printf("null");
+            fprintf(stream, "null");
             break;
         case TYPE_BOOLEAN:
-            printf("%s", val.b ? "true" : "false");
+            fprintf(stream, "%s", val.b ? "true" : "false");
             break;
         case TYPE_INTEGER:
-            printf("Int: %d", val.num);
+            fprintf(stream, "Int: %d", val.num);
             break;
         case TYPE_OBJECT: {
-            switch (val.obj->type) {
-                case OBJ_STRING:
-                    printf(">%s<", AS_CSTRING(val));
-                    break;
-                case OBJ_ARRAY: {
-                    obj_array_t* arr = AS_ARRAY(val);
-                    printf("Array %lu { ", arr->size);
-                    for (size_t i = 0; i < arr->size; ++ i) {
-                        dissasemble_value(arr->values[i]);
-                        if (i != arr->size - 1) {
-                            printf(", ");
-                        }
-                    }
-                    printf(" }");
-                    break;
-                }
-                    
-                    
-                case OBJ_SLOT:
-                    printf("Slot %d", AS_SLOT(val)->index);
-                    break;
-                case OBJ_FUNCTION:
-                    printf("Object");
-                    break;
-                case OBJ_CLASS:
-                    printf("Class");
-                    break;
-                default:
-                    printf("Unknown object");
-                    break;
-            }
+            dissasemble_object(stream, val.obj);
             break;
         }
         default:
-            printf("Unknown type");
+            fprintf(stream, "Unknown type");
             break;
     }
 }
@@ -71,7 +76,7 @@ void dissasemble_value(value_t val) {
 void dissasemble_stack(op_stack_t* op_stack) {
     for (ssize_t i = op_stack->size - 1; i >= 0; -- i) {
         printf("[ ");
-        dissasemble_value(op_stack->data[i]);
+        dissasemble_value(stdout, op_stack->data[i]);
         printf(" ]");
     }
 

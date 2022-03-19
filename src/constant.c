@@ -1,6 +1,7 @@
 #include <string.h>
 
 #include "include/constant.h"
+#include "include/objects.h"
 #include "include/memory.h"
 
 void init_globals(global_indexes_t* globals) {
@@ -87,5 +88,30 @@ obj_array_t* build_obj_array(size_t size, value_t init) {
     for (size_t i = 0; i < size; ++ i) {
         obj->values[i] = init;
     }
+    return obj;
+}
+
+obj_class_t* build_obj_class() {
+    
+    obj_class_t* obj = malloc(sizeof(*obj));
+    obj->obj = (obj_t){.type = OBJ_CLASS};
+    obj->size = 0;
+    init_hash_map(&obj->methods);
+    return obj;
+}
+
+obj_instance_t* build_obj_instance(obj_class_t* class, hash_map_t fields, value_t extends) {
+    obj_instance_t* obj = malloc(sizeof(*obj));
+    obj->extends = extends;
+    obj->obj = (obj_t){.type = OBJ_INSTANCE};
+    obj->class = class;
+    obj->fields = fields;
+    return obj;
+}
+
+obj_native_fun_t* build_obj_native(native_fun_t fun) {
+    obj_native_fun_t* obj = malloc(sizeof(*obj));
+    obj->obj = (obj_t){.type = OBJ_NATIVE};
+    obj->fun = fun;
     return obj;
 }
