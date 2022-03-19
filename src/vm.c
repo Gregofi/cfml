@@ -129,6 +129,7 @@ bool print_value(value_t val) {
                 }
                 case OBJ_INSTANCE: {
                     obj_instance_t* instance = AS_INSTANCE(val);
+                    // Fields have to be printed in lexicographical order.
                     obj_string_t** fields = malloc(instance->class->size * sizeof(*fields));
                     for (size_t i = 0; i < instance->class->size; ++ i) {
                         fields[i] = instance->class->fields[i];
@@ -154,6 +155,9 @@ bool print_value(value_t val) {
                     printf(")");
                     break;
                 }
+                default:
+                    fprintf(stderr, "Unknown value type to print.\n");
+                    return false;
             }
         }
             break;
@@ -230,6 +234,7 @@ interpret_result_t interpret_function_call(vm_t* vm, obj_function_t *func, uint8
     push_frame(&vm->frames, vm->ip);
     // Populate the new frame with arguments
     call_frame_t* top_frame = get_top_frame(&vm->frames);
+    // Function arguments are popped in reverse
     for (int i = arg_cnt - 1; i >= 0; -- i) {
         top_frame->locals_vector[i] = pop(&vm->op_stack);
     }
@@ -246,7 +251,8 @@ obj_function_t* get_function(obj_string_t* name, vm_t* vm) {
     return AS_FUNCTION(fun); 
 }
 
-
+/// Dispatches builtin operator methods.
+/// This is very hacky implementation, also type checking is not done most of the time.
 value_t dispatch_builtin(obj_string_t* method_name, value_t receiver, value_t right_side, value_t right_right_side) {
 #define CMP(x, y, z) (strcmp(x, y) == 0 || strcmp(x, z) == 0)
     if (IS_NUMBER(receiver)) {
@@ -316,6 +322,8 @@ value_t find_field(value_t ins, obj_string_t* field_name) {
     return field_val;
 }
 
+
+/// Recursively traverses class instance and it's parents to update field.
 void set_field(value_t ins, obj_string_t* field_name, value_t new_val) {
     if (!IS_INSTANCE(ins)) {
         fprintf(stderr, "Unknown field '%s'.", field_name->data);
@@ -453,6 +461,7 @@ interpret_result_t interpret(vm_t* vm)
                 // If primitive object is the parent, then try to call the builtin method.
                 for (;;) {
                     if (IS_INSTANCE(walk)) {
+                        // If not found then walk up the tree
                         if (!hash_map_fetch(&AS_INSTANCE(walk)->class->methods, method_name, &method)) {
                             walk = AS_INSTANCE(walk)->extends;
                         } else {
@@ -460,7 +469,12 @@ interpret_result_t interpret(vm_t* vm)
                             interpret_function_call(vm, func, args_cnt);
                             break;
                         }
+                    // If current object is not class instance then it must be primitive type.
+                    // Try to call the operator from primitive type. The function fails if
+                    // name of the operator doesn't correspond to any existing operator,
+                    // so it also fails if a method isn't in any classes.
                     } else {
+                        // Dispatch builtin also handles calls to non-existing method as it's side-effect.
                         value_t result = dispatch_builtin(method_name, walk, pop(&vm->op_stack), args_cnt == 2 ? NULL_VAL : pop(&vm->op_stack));
                         pop(&vm->op_stack); // Pop one more for the receiver
                         push(&vm->op_stack, result);
