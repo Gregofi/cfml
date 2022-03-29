@@ -4,7 +4,7 @@
 #include "include/hashmap.h"
 
 #define MAX_FUN_ARGS 256
-#define MAX_LOCALS 1024
+#define MAX_LOCALS 256
 #define FRAMES_LIMIT 1024
 
 typedef enum {

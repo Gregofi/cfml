@@ -17,7 +17,7 @@ static uint8_t* read_file(const char* name) {
 
     if (!f) {
         fprintf(stderr, "Couldn't open file '%s'.\n", name);
-        goto FILE_ERROR; 
+        goto FILE_ERROR;
     }
 
     fseek(f, 0, SEEK_END);
@@ -63,10 +63,9 @@ static void prepare_jumps(const chunk_t* chunk, hash_map_t* jump_map) {
             case OP_SET_LOCAL:
             case OP_GET_GLOBAL:
             case OP_SET_GLOBAL:
-            case OP_LABEL: {
+            case OP_LABEL:
                 i += 3;
                 break;
-            }
             case OP_OBJECT:
             case OP_GET_FIELD:
             case OP_SET_FIELD:
@@ -87,7 +86,7 @@ static void prepare_jumps(const chunk_t* chunk, hash_map_t* jump_map) {
                     fprintf(stderr, "Couldn't find jump label '%s' in hashmap.\n", label->data);
                     exit(54);
                 }
-                
+
                 chunk->bytecode[i + 1] = (uint8_t)(row.num >> 16);
                 chunk->bytecode[i + 2] = (uint8_t)(row.num >> 8);
                 chunk->bytecode[i + 3] = (uint8_t)row.num;
@@ -149,7 +148,7 @@ size_t_pair_t parse_bytecode(uint8_t* bytecode, size_t instruction_count, chunk_
                 break;
             }
             // Jump instructions will receive their destination in another pass
-            // Now they are also 4 bytes. 
+            // Now they are also 4 bytes.
             case OP_JUMP:
             case OP_BRANCH:
                 write_chunk(chunk, bytecode[byte_size]);
@@ -243,7 +242,6 @@ uint8_t* parse_constant_pool(vm_t* vm, uint8_t *file, chunk_t *chunk) {
                         exit(8);
                     }
                 }
-                // qsort(as_class->fields, as_class->size, sizeof(*as_class->fields), compare_strings);
                 add_constant(&chunk->pool, class);
                 break;
             }

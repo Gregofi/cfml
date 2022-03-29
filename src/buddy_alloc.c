@@ -14,8 +14,6 @@
 #define LEVELS 32
 #define MAGIC_VAL 22131232
 
-#define MEMORY_SIZE (10) * 1024 * 1024
-
 static struct fragment *mem_arr[LEVELS];
 static int heap_size;
 static struct fragment *mem;
@@ -71,7 +69,7 @@ static void remove_free(struct fragment *f, int i) {
 
 static struct fragment *buddy_addr(struct fragment *f, int i) {
     /* Because fragment sizes are multiples of two, we can use bitwise
-       operations to find buddy address | ... |   64b   |   64b    | 
+       operations to find buddy address | ... |   64b   |   64b    |
                                         ^     ^         ^
                                         0     x       x + 64
         We could add 64, but we would have to be sure that our fragment is
@@ -110,10 +108,10 @@ void heap_init(void *mem_pool, int mem_size)
         if(new_size < MIN_BLOCK_SIZE || heap_size + new_size > mem_size) {
             break;
         }
-        struct fragment* rem = (struct fragment*)((uint8_t*)mem + heap_size); 
+        struct fragment* rem = (struct fragment*)((uint8_t*)mem + heap_size);
         *rem = (struct fragment){NULL, new_size - frag_size, MAGIC_VAL};
         set_taken(rem, 0);
-        add_free(rem, i);    
+        add_free(rem, i);
         heap_size += new_size;
     }
 }
@@ -124,8 +122,13 @@ void *heap_alloc(int size) {
     int i = log2int(size + frag_size) + 1;
     while (!mem_arr[i]) {
         i++;
-        if (i >= LEVELS)
+        if (i >= LEVELS) {
+#ifdef __DEBUG__
+            fprintf(stderr, "Couldn't allocate %d bytes\n", size);
+            fprintf(stderr, "Size of the heap: %d, taken blocks: %d\n", heap_size, taken_blocks);
+#endif
             return NULL;
+        }
     }
     struct fragment *walk = mem_arr[i];
     set_taken(walk, true);
@@ -175,6 +178,27 @@ bool heap_free(void *blk) {
 
     taken_blocks--;
     return true;
+}
+
+void* heap_realloc(void* blk, size_t new_size) {
+    if (blk == NULL) {
+        return heap_alloc(new_size);
+    }
+    if (new_size == 0) {
+        heap_free(blk);
+        return NULL;
+    }
+    void* new_blk = heap_alloc(new_size);
+    struct fragment *f = (struct fragment*)blk - 1;
+    memcpy(new_blk, blk, f->size);
+    heap_free(blk);
+    return new_blk;
+}
+
+void* heap_calloc(size_t num, size_t size) {
+    void* new_blk = heap_alloc(num * size);
+    memset(new_blk, 0, num * size);
+    return new_blk;
 }
 
 int heap_done() { return taken_blocks; }

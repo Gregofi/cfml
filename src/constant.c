@@ -3,6 +3,7 @@
 #include "include/constant.h"
 #include "include/objects.h"
 #include "include/memory.h"
+#include "include/buddy_alloc.h"
 
 void init_globals(global_indexes_t* globals) {
     memset(globals, 0, sizeof(*globals));
@@ -11,14 +12,14 @@ void init_globals(global_indexes_t* globals) {
 void write_global(global_indexes_t* globals, uint16_t index) {
     if (globals->length >= globals->capacity) {
         globals->capacity = NEW_CAPACITY(globals->capacity);
-        globals->indexes = realloc(globals->indexes, globals->capacity);
+        globals->indexes = heap_realloc(globals->indexes, globals->capacity);
     }
 
     globals->indexes[globals->length ++] = index;
 }
 
 void free_globals(global_indexes_t* globals) {
-    free(globals->indexes);
+    heap_free(globals->indexes);
     init_globals(globals);
 }
 
@@ -29,7 +30,7 @@ void init_constant_pool(constant_pool_t* pool) {
 size_t add_constant(constant_pool_t* pool, value_t constant) {
     if (pool->len >= pool->capacity) {
         pool->capacity = NEW_CAPACITY(pool->capacity);
-        pool->data = (value_t*)realloc(pool->data, pool->capacity * sizeof(*(pool->data))); 
+        pool->data = (value_t*)heap_realloc(pool->data, pool->capacity * sizeof(*(pool->data)));
     }
 
     pool->data[pool->len++] = constant;
@@ -40,17 +41,15 @@ void free_constant_pool(constant_pool_t* pool) {
     for(size_t i = 0; i < pool->len; ++ i) {
         if (pool->data[i].type != TYPE_OBJECT)
             continue;
-
-        free(AS_STRING(pool->data[i]));
+        heap_free(AS_STRING(pool->data[i]));
     }
-    free(pool->data);
+    heap_free(pool->data);
     init_constant_pool(pool);
 }
 
 /// Returns new dynamically allocated instance of obj_string_t
 obj_string_t* build_obj_string(size_t len, const char* ptr, uint32_t hash) {
-    obj_string_t* new_string = (obj_string_t*)malloc(sizeof(*new_string) 
-                                    + len + 1);
+    obj_string_t* new_string = heap_alloc(sizeof(*new_string)+ len + 1);
     new_string->length = len;
     strncpy(new_string->data, ptr, len);
     new_string->data[len] = '\0';
@@ -60,18 +59,18 @@ obj_string_t* build_obj_string(size_t len, const char* ptr, uint32_t hash) {
     return new_string;
 }
 
-/// Allocates function object on heap and returns pointer to it, 
+/// Allocates function object on heap and returns pointer to it,
 /// fields of function are zero initialized
 /// with exception of object, which is initialized correctly.
 obj_function_t* build_obj_fun() {
-    obj_function_t* fun = (obj_function_t*)malloc(sizeof(*fun));
+    obj_function_t* fun = (obj_function_t*)heap_alloc(sizeof(*fun));
     memset(fun, 0, sizeof(*fun));
     fun->obj = (obj_t){.type = OBJ_FUNCTION};
     return fun;
 }
 
 obj_slot_t* build_obj_slot(uint16_t index) {
-    obj_slot_t* slot = malloc(sizeof(*slot));
+    obj_slot_t* slot = heap_alloc(sizeof(*slot));
     slot->index = index;
     slot->obj = (obj_t){.type = OBJ_SLOT};
     return slot;
@@ -82,7 +81,7 @@ bool is_obj_type(value_t val, obj_type_t type) {
 }
 
 obj_array_t* build_obj_array(size_t size, value_t init) {
-    obj_array_t* obj = malloc(sizeof(*obj) + size * sizeof(*obj->values));
+    obj_array_t* obj = heap_alloc(sizeof(*obj) + size * sizeof(*obj->values));
     obj->size = size;
     obj->obj = (obj_t){.type = OBJ_ARRAY};
     for (size_t i = 0; i < size; ++ i) {
@@ -92,8 +91,7 @@ obj_array_t* build_obj_array(size_t size, value_t init) {
 }
 
 obj_class_t* build_obj_class() {
-    
-    obj_class_t* obj = malloc(sizeof(*obj));
+    obj_class_t* obj = heap_alloc(sizeof(*obj));
     obj->obj = (obj_t){.type = OBJ_CLASS};
     obj->size = 0;
     init_hash_map(&obj->methods);
@@ -101,7 +99,7 @@ obj_class_t* build_obj_class() {
 }
 
 obj_instance_t* build_obj_instance(obj_class_t* class, hash_map_t fields, value_t extends) {
-    obj_instance_t* obj = malloc(sizeof(*obj));
+    obj_instance_t* obj = heap_alloc(sizeof(*obj));
     obj->extends = extends;
     obj->obj = (obj_t){.type = OBJ_INSTANCE};
     obj->class = class;
@@ -110,7 +108,7 @@ obj_instance_t* build_obj_instance(obj_class_t* class, hash_map_t fields, value_
 }
 
 obj_native_fun_t* build_obj_native(native_fun_t fun) {
-    obj_native_fun_t* obj = malloc(sizeof(*obj));
+    obj_native_fun_t* obj = heap_alloc(sizeof(*obj));
     obj->obj = (obj_t){.type = OBJ_NATIVE};
     obj->fun = fun;
     return obj;

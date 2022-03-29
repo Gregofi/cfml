@@ -7,6 +7,7 @@
 #include "include/memory.h"
 #include "include/dissasembler.h"
 #include "include/objects.h"
+#include "include/buddy_alloc.h"
 
 call_frame_t* get_top_frame(call_frames_t* call_frames) {
     return &call_frames->frames[call_frames->length - 1];
@@ -19,7 +20,7 @@ call_frame_t* get_global_frame(call_frames_t* call_frames) {
 void push_frame(call_frames_t* call_frames, uint8_t* ip) {
     if (call_frames->length >= call_frames->capacity) {
         call_frames->capacity = NEW_CAPACITY(call_frames->capacity);
-        call_frames->frames = realloc(call_frames->frames, sizeof(*call_frames->frames) * call_frames->capacity);
+        call_frames->frames = heap_realloc(call_frames->frames, sizeof(*call_frames->frames) * call_frames->capacity);
     }
 
     for(size_t i = 0; i < MAX_LOCALS; ++ i) {
@@ -41,7 +42,7 @@ void init_frames(call_frames_t* call_frames)
 
 void free_frames(call_frames_t* call_frames)
 {
-    free(call_frames->frames);
+    heap_free(call_frames->frames);
     init_frames(call_frames);
 }
 
@@ -54,14 +55,14 @@ void init_stack(op_stack_t* stack)
 
 void free_stack(op_stack_t* stack)
 {
-    free(stack->data);
+    heap_free(stack->data);
 }
 
 void push(op_stack_t* stack, value_t c)
 {
     if (stack->size >= stack->capacity) {
         stack->capacity = NEW_CAPACITY(stack->capacity);
-        stack->data = realloc(stack->data, stack->capacity * sizeof(*stack->data));
+        stack->data = heap_realloc(stack->data, stack->capacity * sizeof(*stack->data));
     }
 
     stack->data[stack->size++] = c;
@@ -130,7 +131,7 @@ bool print_value(value_t val) {
                 case OBJ_INSTANCE: {
                     obj_instance_t* instance = AS_INSTANCE(val);
                     // Fields have to be printed in lexicographical order.
-                    obj_string_t** fields = malloc(instance->class->size * sizeof(*fields));
+                    obj_string_t** fields = heap_alloc(instance->class->size * sizeof(*fields));
                     for (size_t i = 0; i < instance->class->size; ++ i) {
                         fields[i] = instance->class->fields[i];
                     }
@@ -172,8 +173,7 @@ bool print_value(value_t val) {
 #define READ_WORD_IP(vm) ((vm)->ip += 2, (*((vm)->ip - 2) | (*((vm)->ip - 1) << 8)))
 
 bool interpret_print(vm_t* vm) {
-    // For some stupid reason, the first popped value should be printed last.
-    // Yes, it is very stupid. The person who thought of this is bad and should feel bad.
+    // For some great reason the first popped value should be printed last.
     value_t obj = vm->bytecode.pool.data[READ_WORD_IP(vm)];
     if (!IS_STRING(obj)) {
         fprintf(stderr, "Print keyword accepts only string as it's first argument.\n");
@@ -316,7 +316,7 @@ value_t find_field(value_t ins, obj_string_t* field_name) {
         exit(123);
     }
     value_t field_val;
-    if(!hash_map_fetch(&AS_INSTANCE(ins)->fields, field_name, &field_val)) {
+    if (!hash_map_fetch(&AS_INSTANCE(ins)->fields, field_name, &field_val)) {
         return find_field(AS_INSTANCE(ins)->extends, field_name);
     }
     return field_val;
@@ -329,7 +329,7 @@ void set_field(value_t ins, obj_string_t* field_name, value_t new_val) {
         fprintf(stderr, "Unknown field '%s'.", field_name->data);
         exit(123);
     }
-    if(!hash_map_update(&AS_INSTANCE(ins)->fields, field_name, new_val)) {
+    if (!hash_map_update(&AS_INSTANCE(ins)->fields, field_name, new_val)) {
         set_field(AS_INSTANCE(ins)->extends, field_name, new_val);
     }
 }

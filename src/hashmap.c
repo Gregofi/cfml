@@ -10,6 +10,7 @@
 #include "include/memory.h"
 #include "include/hashmap.h"
 #include "include/dissasembler.h"
+#include "include/buddy_alloc.h"
 
 #define IS_GRAVE(node) ((node)->key == NULL && IS_BOOL((node)->value) && AS_BOOL((node)->value))
 
@@ -18,7 +19,7 @@ void init_hash_map(hash_map_t* hm) {
 }
 
 void free_hash_map(hash_map_t* hm) {
-    free(hm->entries);
+    heap_free(hm->entries);
     init_hash_map(hm);
 }
 
@@ -38,21 +39,21 @@ unsigned long hash_string(const char *str)
 /// Finds either existing entry or place where it can be inserted. Uses linear probing.
 static entry_t* hash_map_find_entry(entry_t* entries, size_t capacity, obj_string_t* key) {
     uint32_t index = key->hash % capacity;
-    entry_t* grave = NULL;
+    entry_t* tombstone = NULL;
 
     for(;;) {
         entry_t* entry = &entries[index];
 
-        // Save grave if encountered.
+        // Save tombstone if encountered.
         if (entry->key == NULL) {
-            // Return grave if it was encountered.
+            // Return tombstone if it was encountered.
             if (IS_BOOL(entry->value) && AS_BOOL(entry->value)) {
-                // Save only the first occurence of the grave
-                if (grave == NULL) {
-                    grave = entry;
+                // Save only the first occurence of the tombstone
+                if (tombstone == NULL) {
+                    tombstone = entry;
                 }
             } else {
-                return grave != NULL ? grave : entry;
+                return tombstone != NULL ? tombstone : entry;
             }
         // Comparing by pointers, this is okay since
         // strings in constant pool are always the same
@@ -65,7 +66,7 @@ static entry_t* hash_map_find_entry(entry_t* entries, size_t capacity, obj_strin
 }
 
 static void hash_map_resize(hash_map_t *hm, size_t capacity) {
-    entry_t* entries = calloc(capacity, sizeof(*entries));
+    entry_t* entries = heap_calloc(capacity, sizeof(*entries));
     if (entries == NULL) {
         fprintf(stderr, "HashMap run out of memory.\n");
         exit(37);
@@ -86,7 +87,7 @@ static void hash_map_resize(hash_map_t *hm, size_t capacity) {
         hm->count += 1;
     }
 
-    free(hm->entries);
+    heap_free(hm->entries);
     hm->entries = entries;
     hm->capacity = capacity;
 }
@@ -141,7 +142,7 @@ bool hash_map_delete(hash_map_t* hm, obj_string_t* key) {
         return false;
     }
 
-    // Create grave
+    // Create tombstone
     entry->key = NULL;
     entry->value = BOOL_VAL(true);
     return true;
