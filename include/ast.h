@@ -69,10 +69,7 @@ typedef enum {
 typedef struct {
     ast_t ast;
     ast_literal_type_t type;
-    union {
-        int int_lit;
-        bool bool_lit;
-    };
+    int int_value;
 } ast_literal_t;
 
 /**
@@ -80,7 +77,7 @@ typedef struct {
  */
 typedef struct {
     ast_t ast;
-    ast_t value;
+    ast_t* value;
     string_t identifier;
 } ast_var_def_t;
 
@@ -98,7 +95,7 @@ typedef struct {
 typedef struct {
     ast_t ast;
     string_t identifier;
-    ast_t value;
+    ast_t* value;
 } ast_var_assign_t;
 
 /**
@@ -106,8 +103,8 @@ typedef struct {
  */
 typedef struct {
     ast_t ast;
-    ast_t size;
-    ast_t value;
+    ast_t* size;
+    ast_t* value;
 } ast_array_def_t;
 
 /**
@@ -115,8 +112,8 @@ typedef struct {
  */
 typedef struct {
     ast_t ast;
-    ast_t array;
-    ast_t index;
+    ast_t* array;
+    ast_t* index;
 } ast_array_access_t;
 
 /**
@@ -124,9 +121,9 @@ typedef struct {
  */
 typedef struct {
     ast_t ast;
-    ast_t array;
-    ast_t index;
-    ast_t value;
+    ast_t* array;
+    ast_t* index;
+    ast_t* value;
 } ast_array_assign_t;
 
 /**
@@ -134,15 +131,15 @@ typedef struct {
  */
 typedef struct {
     ast_t ast;
-    ast_t name;
-    ast_t body;
+    ast_t* name;
+    ast_t* body;
     size_t parameters_cnt;
     string_t parameters[];
 } ast_function_t;
 
 typedef struct {
     ast_t ast;
-    ast_t name;
+    ast_t* name;
     ast_vec_t args;
 } ast_function_apply_t;
 
@@ -164,16 +161,15 @@ typedef struct {
 
 typedef struct {
     ast_t ast;
-    ast_t condition;
-    ast_t body;
+    ast_t* condition;
+    ast_t* body;
 } ast_loop_t;
 
 typedef struct {
     ast_t ast;
-    ast_t condition;
-    ast_t if_body;
-    bool has_alternative;
-    ast_t else_body;
+    ast_t* condition;
+    ast_t* if_body;
+    ast_t* else_body;
 } ast_conditional_t;
 
 typedef struct {
