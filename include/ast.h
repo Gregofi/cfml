@@ -17,7 +17,7 @@ typedef struct {
     char* data;
 } string_t;
 
-string_t createString(const char* s) {
+string_t create_string(const char* s) {
     size_t len = strlen(s);
     char* str = malloc(len);
     return (string_t){.size = len, .data = str};
@@ -52,7 +52,7 @@ typedef struct {
 
 typedef struct {
     size_t size;
-    ast_t* data;
+    ast_t** data;
 } ast_vec_t;
 
 typedef enum {
@@ -131,7 +131,7 @@ typedef struct {
  */
 typedef struct {
     ast_t ast;
-    ast_t* name;
+    string_t name;
     ast_t* body;
     size_t parameters_cnt;
     string_t parameters[];
@@ -139,7 +139,7 @@ typedef struct {
 
 typedef struct {
     ast_t ast;
-    ast_t* name;
+    string_t name;
     ast_vec_t args;
 } ast_function_apply_t;
 
@@ -179,20 +179,64 @@ typedef struct {
 
 typedef struct {
     ast_t ast;
-    ast_t object;
+    ast_t* object;
     string_t identifier;
-    ast_t value;
+    ast_t* value;
 } ast_field_assign_t;
 
 typedef struct {
     ast_t ast;
-    ast_t object;
+    ast_t* object;
     string_t identifier;
 } ast_field_access_t;
 
 typedef struct {
     ast_t ast;
-    ast_t object;
+    ast_t* object;
     string_t identifier;
     ast_vec_t arguments;
 } ast_method_call_t;
+
+#define BUILD_AST(t) (ast_t){.type = t}
+
+
+/**
+ * Creates new node representing literal
+ * @param type - Type of the literal, either int, bool or null
+ * @param val - int or boolean value. If type is null, val can be whatever.
+ */
+ast_literal_t* build_ast_int_lit(ast_literal_type_t type, int val);
+
+ast_var_def_t* build_ast_var_def(ast_t* value, const char* identifier);
+
+ast_var_access_t* build_ast_var_access(const char* identifier);
+
+ast_var_assign_t* build_ast_var_assign(const char* identifier, ast_t* value);
+
+ast_array_def_t* build_ast_array_def(ast_t* size, ast_t* value);
+
+ast_array_access_t* build_ast_array_access(ast_t* array, ast_t* index);
+
+ast_array_assign_t* build_ast_array_assign(ast_t* array, ast_t* index, ast_t* value);
+
+ast_function_t* build_ast_function(const char* name, ast_t* body, size_t params_cnt, const char *params[]);
+
+ast_function_apply_t* build_ast_function_apply(const char* name, ast_vec_t args);
+
+ast_print_t* build_ast_print(const char* format, ast_vec_t args);
+
+ast_block_t* build_ast_block(ast_vec_t stmts);
+
+ast_top_t* build_ast_top(ast_vec_t body);
+
+ast_loop_t* build_ast_loop(ast_t* cond, ast_t* body);
+
+ast_conditional_t* build_ast_conditional(ast_t* cond, ast_t* if_body, ast_t* else_body);
+
+ast_object_def_t* build_ast_object_def(ast_vec_t members);
+
+ast_field_assign_t* build_ast_field_assign(ast_t* object, const char* identifier, ast_t* value);
+
+ast_field_access_t* build_ast_field_access(ast_t* object, const char* identifier);
+
+ast_method_call_t* build_ast_method_call(ast_t* object, const char* identifier, ast_vec_t args);
