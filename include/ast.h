@@ -69,7 +69,10 @@ typedef enum {
 typedef struct {
     ast_t ast;
     ast_literal_type_t type;
-    uint32_t data;
+    union {
+        int int_lit;
+        bool bool_lit;
+    };
 } ast_literal_t;
 
 /**
