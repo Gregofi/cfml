@@ -1,8 +1,0 @@
-/home/gregofi1/skola/RUN/cfml/_build/CMakeFiles/rebuild_cache.dir
-/home/gregofi1/skola/RUN/cfml/_build/CMakeFiles/parser_test.dir
-/home/gregofi1/skola/RUN/cfml/_build/CMakeFiles/hashmap_test.dir
-/home/gregofi1/skola/RUN/cfml/_build/CMakeFiles/buddy_alloc_test.dir
-/home/gregofi1/skola/RUN/cfml/_build/CMakeFiles/edit_cache.dir
-/home/gregofi1/skola/RUN/cfml/_build/CMakeFiles/test.dir
-/home/gregofi1/skola/RUN/cfml/_build/CMakeFiles/interpreter_test.dir
-/home/gregofi1/skola/RUN/cfml/_build/CMakeFiles/fml.dir
