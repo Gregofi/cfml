@@ -1,0 +1,1 @@
+clang  -I/home/gregofi1/skola/RUN/cfml CMakeFiles/buddy_alloc_test.dir/tests/buddy_alloc_test.c.o CMakeFiles/buddy_alloc_test.dir/src/dissasembler.c.o CMakeFiles/buddy_alloc_test.dir/src/buddy_alloc.c.o -o buddy_alloc_test 

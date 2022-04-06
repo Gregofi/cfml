@@ -1,0 +1,1 @@
+clang  -I/home/gregofi1/skola/RUN/cfml CMakeFiles/fml.dir/main.c.o CMakeFiles/fml.dir/src/serializer.c.o CMakeFiles/fml.dir/src/bytecode.c.o CMakeFiles/fml.dir/src/dissasembler.c.o CMakeFiles/fml.dir/src/memory.c.o CMakeFiles/fml.dir/src/vm.c.o CMakeFiles/fml.dir/src/constant.c.o CMakeFiles/fml.dir/src/buddy_alloc.c.o CMakeFiles/fml.dir/src/hashmap.c.o -o fml 
