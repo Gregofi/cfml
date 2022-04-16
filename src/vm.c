@@ -248,7 +248,7 @@ interpret_result_t interpret_function_call(vm_t* vm, obj_function_t *func, uint8
 obj_function_t* get_function(obj_string_t* name, vm_t* vm) {
     value_t fun;
     hash_map_fetch(&vm->global_var, name, &fun);
-    return AS_FUNCTION(fun); 
+    return AS_FUNCTION(fun);
 }
 
 /// Dispatches builtin operator methods.
@@ -465,7 +465,9 @@ interpret_result_t interpret(vm_t* vm)
                         if (!hash_map_fetch(&AS_INSTANCE(walk)->class->methods, method_name, &method)) {
                             walk = AS_INSTANCE(walk)->extends;
                         } else {
-                            obj_function_t *func = AS_FUNCTION(method);
+                            obj_function_t* func = AS_FUNCTION(method);
+                            // Update the object to be the extended one
+                            vm->op_stack.data[vm->op_stack.size - args_cnt] = walk;
                             interpret_function_call(vm, func, args_cnt);
                             break;
                         }
@@ -480,7 +482,7 @@ interpret_result_t interpret(vm_t* vm)
                         push(&vm->op_stack, result);
                         break;
                     }
-                } 
+                }
                 break;
             }
             default:
