@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <assert.h>
 
 #include "include/constant.h"
 #include "include/hashmap.h"
@@ -231,6 +232,9 @@ bool interpret_print(vm_t* vm) {
 }
 
 interpret_result_t interpret_function_call(vm_t* vm, obj_function_t *func, uint8_t arg_cnt) {
+#ifdef __DEBUG__
+    assert(func != NULL && func->obj.type == OBJ_FUNCTION);
+#endif
     push_frame(&vm->frames, vm->ip);
     // Populate the new frame with arguments
     call_frame_t* top_frame = get_top_frame(&vm->frames);
@@ -247,7 +251,16 @@ interpret_result_t interpret_function_call(vm_t* vm, obj_function_t *func, uint8
 
 obj_function_t* get_function(obj_string_t* name, vm_t* vm) {
     value_t fun;
-    hash_map_fetch(&vm->global_var, name, &fun);
+    if (!hash_map_fetch(&vm->global_var, name, &fun)) {
+        printf("Function '%s' does not exist.\n", name->data);
+        exit(39);
+    }
+    if (!IS_FUNCTION(fun)) {
+        printf("'%s' is not a function object, it is ", name->data);
+        dissasemble_value(stdout, fun);
+        puts("");
+        exit(40);
+    }
     return AS_FUNCTION(fun);
 }
 
@@ -434,6 +447,10 @@ interpret_result_t interpret(vm_t* vm)
             }
             case OP_CALL_FUNCTION: {
                 uint16_t index = READ_WORD_IP(vm);
+#ifdef __DEBUG__
+                assert(IS_STRING(vm->bytecode.pool.data[index]));
+                printf("Calling %s\n", AS_STRING(vm->bytecode.pool.data[index])->data);
+#endif
                 obj_string_t* fun_name = AS_STRING(vm->bytecode.pool.data[index]);
                 uint8_t arg_cnt = READ_BYTE_IP(vm);
                 // Fetch function from global pool

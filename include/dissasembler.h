@@ -7,6 +7,7 @@
 #include "include/memory.h"
 #include "include/vm.h"
 
+void dissasemble_global_variables(FILE* stream, vm_t* vm);
 void dissasemble_chunk(chunk_t *chunk, const char* name);
 size_t dissasemble_instruction(chunk_t* chunk, size_t offset);
 void dissasemble_stack(op_stack_t* op_stack);

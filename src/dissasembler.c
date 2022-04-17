@@ -40,10 +40,13 @@ void dissasemble_object(FILE* stream, obj_t* obj) {
             fprintf(stream, "Slot %d", ((obj_slot_t*)obj)->index);
             break;
         case OBJ_FUNCTION:
-            fprintf(stream, "Object");
+            fprintf(stream, "Function '%d'", ((obj_function_t*)obj)->name);
             break;
         case OBJ_INSTANCE:
             fprintf(stream, "Instance of object");
+            break;
+        case OBJ_CLASS:
+            fprintf(stream, "Class");
             break;
         default:
             fprintf(stream, "Unknown object");
@@ -90,7 +93,6 @@ void dissasemble_frames(call_frames_t* frames) {
         NOT_IMPLEMENTED();
     }
 }
-
 
 size_t dissasemble_instruction(chunk_t* chunk, size_t offset) {
     printf("%04ld ", offset);
@@ -147,6 +149,8 @@ size_t dissasemble_instruction(chunk_t* chunk, size_t offset) {
             }
             case OP_CALL_FUNCTION:
                 printf("OP_CALL_FUNCTION");
+                uint16_t index = READ_2BYTES(chunk->bytecode + offset + 1);
+                printf(" %04d %s", index, AS_CSTRING(chunk->pool.data[index]));
                 return offset + 4;
             case OP_PRINT:
                 printf("OP_PRINT");
@@ -165,5 +169,17 @@ void dissasemble_chunk(chunk_t *chunk, const char* name) {
     for(size_t idx = 0; idx < chunk->size;) {
         idx = dissasemble_instruction(chunk, idx);
         puts("");
+    }
+}
+
+void dissasemble_global_variables(FILE* stream, vm_t* vm) {
+    puts("== Global variables ==");
+    for (size_t i = 0; i < vm->global_var.capacity; ++ i) {
+        if (vm->global_var.entries[i].key != NULL) {
+            printf("%zu: ", i);
+            printf("%s - ", vm->global_var.entries[i].key->data);
+            dissasemble_value(stream, vm->global_var.entries[i].value);
+            puts("");
+        }
     }
 }

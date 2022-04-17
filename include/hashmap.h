@@ -8,7 +8,7 @@
 #include "include/memory.h"
 #include "include/constant.h"
 
-#define HASH_MAP_LOAD_BALACE 0.8
+#define HASH_MAP_LOAD_BALANCE 0.8
 
 typedef struct {
     obj_string_t* key;
@@ -20,6 +20,8 @@ typedef struct {
     size_t capacity;
     entry_t* entries;
 } hash_map_t;
+
+#define IS_GRAVE(node) ((node)->key == NULL && IS_BOOL((node)->value) && AS_BOOL((node)->value))
 
 void init_hash_map(hash_map_t* hm);
 

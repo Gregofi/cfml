@@ -4,7 +4,7 @@
 #include "include/dissasembler.h"
 #include "include/buddy_alloc.h"
 
-#define MEMORY 100 * 1024 * 1024
+#define MEMORY 3500UL * 1024UL * 1024UL // 3.5 GBs
 
 int main(int argc, const char* argv[]) {
     if (argc < 3) {
@@ -13,22 +13,32 @@ int main(int argc, const char* argv[]) {
     }
 
     /* Initialize memory */
+#ifndef __SYSTEM_MEMORY__
     void* mempool = malloc(MEMORY);
     if (mempool == NULL) {
         fprintf(stderr, "Failed to allocate memory from the OS.\n");
     }
     heap_init(mempool, MEMORY);
+#endif
 
     vm_t vm;
     init_vm(&vm);
     parse(&vm, argv[2]);
 
 #ifdef __DEBUG__
+    puts("Constant pool: ");
+    for (size_t i = 0; i < vm.bytecode.pool.len; ++ i) {
+        printf("%d: ", i);
+        dissasemble_value(stderr, vm.bytecode.pool.data[i]);
+        puts("");
+    }
+
+    dissasemble_global_variables(stderr, &vm);
+
     dissasemble_chunk(&vm.bytecode, "main chunk");
-    fflush(stdout);
+    fflush(stderr);
     puts("After parsing.\n");
 #endif
-
 
     interpret_result_t result = interpret(&vm);
     if (result == INTERPRET_RUNTIME_ERROR) {

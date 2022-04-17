@@ -12,7 +12,11 @@ void init_globals(global_indexes_t* globals) {
 void write_global(global_indexes_t* globals, uint16_t index) {
     if (globals->length >= globals->capacity) {
         globals->capacity = NEW_CAPACITY(globals->capacity);
-        globals->indexes = heap_realloc(globals->indexes, globals->capacity);
+        globals->indexes = heap_realloc(globals->indexes, globals->capacity * sizeof(*globals->indexes));
+        if (!globals->indexes) {
+            fprintf(stderr, "Reallocation failed.\n");
+            exit(1);
+        }
     }
 
     globals->indexes[globals->length ++] = index;
@@ -47,7 +51,7 @@ void free_constant_pool(constant_pool_t* pool) {
     init_constant_pool(pool);
 }
 
-/// Returns new dynamically allocated instance of obj_string_t
+/// Returns new dynamically allocated instance of obj_string_t.
 obj_string_t* build_obj_string(size_t len, const char* ptr, uint32_t hash) {
     obj_string_t* new_string = heap_alloc(sizeof(*new_string)+ len + 1);
     new_string->length = len;

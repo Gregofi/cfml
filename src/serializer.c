@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 #include "include/hashmap.h"
 #include "include/serializer.h"
@@ -9,6 +10,46 @@
 #include "include/vm.h"
 #include "include/dissasembler.h"
 #include "include/objects.h"
+#include "include/buddy_alloc.h"
+
+typedef struct globals_pending {
+    size_t size;
+    size_t capacity;
+    int* data;
+} globals_pending_t;
+
+static void init_pending(globals_pending_t* globals) {
+    memset(globals, 0, sizeof(*globals));
+}
+
+static void push_pending(globals_pending_t* globals, int value) {
+    if (globals->capacity <= globals->size) {
+        globals->capacity = NEW_CAPACITY(globals->capacity);
+        globals->data = heap_realloc(globals->data, globals->capacity * sizeof(*globals->data));
+    }
+    globals->data[globals->size++] = value;
+}
+
+static bool contains_pending(globals_pending_t* globals, int value) {
+    for (size_t i = 0; i < globals->size; ++i) {
+        if (globals->data[i] == value) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static void remove_pending(globals_pending_t* globals, int value) {
+    for (size_t i = 0; i < globals->size; ++i) {
+        if (globals->data[i] == value) {
+            for (size_t j = i; i < globals->size - 1; ++ i) {
+                globals->data[j] = globals->data[j + 1];
+            }
+            globals->size -= 1;
+            return;
+        }
+    }
+}
 
 static uint8_t* read_file(const char* name) {
     size_t size = 0, bytes_read = 0;
@@ -182,6 +223,9 @@ uint8_t* parse_constant_pool(vm_t* vm, uint8_t *file, chunk_t *chunk) {
     hash_map_t labels;
     init_hash_map(&labels);
 
+    globals_pending_t pending;
+    init_pending(&pending);
+
     while (size != 0) {
         switch (*file) {
             case CD_BOOLEAN:
@@ -216,9 +260,16 @@ uint8_t* parse_constant_pool(vm_t* vm, uint8_t *file, chunk_t *chunk) {
                 size_t_pair_t p = parse_bytecode(file + 10, bytecode_length, chunk, &labels);
                 fun_obj->length = p.second;
                 file += 10 + p.first;
-                add_constant(&chunk->pool, fun);
+                size_t ci = add_constant(&chunk->pool, fun);
                 // Add function to global map
-                hash_map_insert(&vm->global_var, AS_STRING(chunk->pool.data[fun_obj->name]), fun);
+                push_pending(&pending, ci);
+                // if (!hash_map_insert(&vm->global_var, AS_STRING(chunk->pool.data[fun_obj->name]), fun)) {
+                //     fprintf(stderr, "Warning, '%s' is already in global variables.\n", AS_CSTRING(chunk->pool.data[fun_obj->name]));
+                // }
+#ifdef __DEBUG__
+                // printf("Saving function '%s' into globals(%d).\n", AS_CSTRING(chunk->pool.data[fun_obj->name]), vm->global_var.count);
+                // dissasemble_global_variables(stdout, vm);
+#endif
                 break;
             }
             case CD_CLASS: {
@@ -241,15 +292,20 @@ uint8_t* parse_constant_pool(vm_t* vm, uint8_t *file, chunk_t *chunk) {
                         fprintf(stderr, "Wrong object type on function.\n");
                         exit(8);
                     }
+                    remove_pending(&pending, index);
                 }
                 add_constant(&chunk->pool, class);
                 break;
             }
             case CD_SLOT: {
                 value_t slot = OBJ_SLOT_VAL(READ_2BYTES(file + 1));
-                add_constant(&chunk->pool, slot);
+                size_t ci = add_constant(&chunk->pool, slot);
                 // Either global or field, add it to globals
-                hash_map_insert(&vm->global_var, AS_STRING(chunk->pool.data[AS_SLOT(slot)->index]), NULL_VAL);
+                push_pending(&pending, ci);
+#ifdef __DEBUG__
+                // printf("Saving slot '%s' into globals(%d).\n", AS_CSTRING(chunk->pool.data[AS_SLOT(slot)->index]), vm->global_var.count);
+                // dissasemble_global_variables(stdout, vm);
+#endif
                 file += 3;
                 break;
             }
@@ -262,6 +318,19 @@ uint8_t* parse_constant_pool(vm_t* vm, uint8_t *file, chunk_t *chunk) {
 
     // Change labels to indexes
     prepare_jumps(chunk, &labels);
+
+    // Insert globals into hashmap
+    for (size_t i = 0; i < pending.size; ++i) {
+        value_t val = chunk->pool.data[pending.data[i]];
+        if (IS_SLOT(val)) {
+            hash_map_insert(&vm->global_var, AS_STRING(chunk->pool.data[AS_SLOT(val)->index]), NULL_VAL);
+        } else if (IS_FUNCTION(val)) {
+            hash_map_insert(&vm->global_var, AS_STRING(chunk->pool.data[AS_FUNCTION(val)->name]), val);
+        } else {
+            fprintf(stderr, "Unknown object in globals pending.\n");
+            exit(22);
+        }
+    }
 
     free_hash_map(&labels);
     return file;

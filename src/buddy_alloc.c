@@ -8,21 +8,26 @@
 
 #include "include/buddy_alloc.h"
 
+/**
+ * If macro __SYSTEM_MEMORY__ is defined, then system memory allocations function will be called
+ * instead. So heap_alloc will call malloc, heap_free will call free and so on...
+ */
 
-#define frag_size ((int)sizeof(struct fragment))
-#define MIN_BLOCK_SIZE (32 - (frag_size))
-#define LEVELS 32
+
+#define frag_size ((size_t)sizeof(struct fragment))
+#define MIN_BLOCK_SIZE (64 - (frag_size))
+#define LEVELS 64
 #define MAGIC_VAL 22131232
 
 static struct fragment *mem_arr[LEVELS];
-static int heap_size;
+static size_t heap_size;
 static struct fragment *mem;
-static int taken_blocks;
+static size_t taken_blocks;
 
 struct fragment {
     /* Next free segment in the same level */
     struct fragment *next;
-    int size;
+    size_t size;
     unsigned taken;
 };
 
@@ -43,19 +48,19 @@ static bool is_block(struct fragment *f) {
     return (f->taken & 0xfffffffe) == (MAGIC_VAL & 0xfffffffe);
 }
 
-static int log2int(int num) {
-    int pow = 0;
-    while (num /= 2)
-        pow++;
+static size_t log2int(size_t num) {
+    ssize_t pow = 0;
+    while (num /= 2UL)
+        pow += 1;
     return pow;
 }
 
-static void add_free(struct fragment *f, int i) {
+static void add_free(struct fragment *f, size_t i) {
     f->next = mem_arr[i];
     mem_arr[i] = f;
 }
 
-static void remove_free(struct fragment *f, int i) {
+static void remove_free(struct fragment *f, size_t i) {
     struct fragment *walk = mem_arr[i];
 
     if (walk == f) {
@@ -67,7 +72,7 @@ static void remove_free(struct fragment *f, int i) {
     walk->next = f->next;
 }
 
-static struct fragment *buddy_addr(struct fragment *f, int i) {
+static struct fragment *buddy_addr(struct fragment *f, size_t i) {
     /* Because fragment sizes are multiples of two, we can use bitwise
        operations to find buddy address | ... |   64b   |   64b    |
                                         ^     ^         ^
@@ -80,8 +85,8 @@ static struct fragment *buddy_addr(struct fragment *f, int i) {
                                (uint8_t *)mem);
 }
 
-static void split(struct fragment *f, int i) {
-    int new_size = (f->size + frag_size) / 2;
+static void split(struct fragment *f, size_t i) {
+    size_t new_size = (f->size + frag_size) / 2;
 
     f->size = new_size - frag_size;
     struct fragment *buddy = (struct fragment *)((uint8_t *)f + new_size);
@@ -92,9 +97,12 @@ static void split(struct fragment *f, int i) {
     set_taken(buddy, false);
     add_free(buddy, i - 1);
 }
-
-void heap_init(void *mem_pool, int mem_size)
+#ifndef __SYSTEM_MEMORY__
+void heap_init(void *mem_pool, size_t mem_size)
 {
+    if (mem_size == 0) {
+        fprintf(stderr, "Warning: Initializing heap of size 0.\n");
+    }
     for (size_t i = 0; i < LEVELS; ++ i)
         mem_arr[i] = NULL;
     taken_blocks = 0;
@@ -103,8 +111,8 @@ void heap_init(void *mem_pool, int mem_size)
     /* Try to allocate as much memory as possible */
     while (true)
     {
-        int i = log2int(mem_size - heap_size);
-        int new_size = 1 << i;
+        size_t i = log2int(mem_size - heap_size);
+        size_t new_size = 1LU << i;
         if(new_size < MIN_BLOCK_SIZE || heap_size + new_size > mem_size) {
             break;
         }
@@ -116,17 +124,15 @@ void heap_init(void *mem_pool, int mem_size)
     }
 }
 
-void *heap_alloc(int size) {
+void *heap_alloc(size_t size) {
     if (size < MIN_BLOCK_SIZE)
         size = MIN_BLOCK_SIZE;
-    int i = log2int(size + frag_size) + 1;
+    size_t i = log2int(size + frag_size) + 1;
     while (!mem_arr[i]) {
         i++;
         if (i >= LEVELS) {
-#ifdef __DEBUG__
-            fprintf(stderr, "Couldn't allocate %d bytes\n", size);
-            fprintf(stderr, "Size of the heap: %d, taken blocks: %d\n", heap_size, taken_blocks);
-#endif
+            fprintf(stderr, "Couldn't allocate %zu bytes\n", size);
+            fprintf(stderr, "Size of the heap: %zu, taken blocks: %zu\n", heap_size, taken_blocks);
             return NULL;
         }
     }
@@ -143,7 +149,7 @@ void *heap_alloc(int size) {
     return walk + 1;
 }
 
-static struct fragment *merge(struct fragment *f, int i) {
+static struct fragment *merge(struct fragment *f, size_t i) {
     struct fragment *b = buddy_addr(f, i);
     if (b->size != f->size || get_taken(b))
         return NULL;
@@ -167,7 +173,7 @@ bool heap_free(void *blk) {
         return false;
     set_taken(f, false);
 
-    int i = log2int(f->size + frag_size);
+    size_t i = log2int(f->size + frag_size);
 
     add_free(f, i);
     /* Try to merge fragments until fragment size does not exceed max heap size
@@ -201,4 +207,31 @@ void* heap_calloc(size_t num, size_t size) {
     return new_blk;
 }
 
-int heap_done() { return taken_blocks; }
+size_t heap_done() { return taken_blocks; }
+
+#else
+
+void heap_init(void* mem_pool, size_t mem_size) {
+    free(mem_pool);
+}
+
+void *heap_alloc(size_t size) {
+    return malloc(size);
+}
+
+bool heap_free(void *blk) {
+    free(blk);
+}
+
+void* heap_realloc(void* blk, size_t new_size) {
+    return realloc(blk, new_size);
+}
+
+void* heap_calloc(size_t cnt, size_t size) {
+    return calloc(cnt, size);
+}
+
+size_t heap_done() { return 0; }
+
+#endif
+

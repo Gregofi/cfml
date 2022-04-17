@@ -12,8 +12,6 @@
 #include "include/dissasembler.h"
 #include "include/buddy_alloc.h"
 
-#define IS_GRAVE(node) ((node)->key == NULL && IS_BOOL((node)->value) && AS_BOOL((node)->value))
-
 void init_hash_map(hash_map_t* hm) {
     memset(hm, 0, sizeof(*hm));
 }
@@ -72,7 +70,6 @@ static void hash_map_resize(hash_map_t *hm, size_t capacity) {
         exit(37);
     }
 
-    hm->count = 0;
     // Reinsert all keys into new memory
     for (size_t i = 0; i < hm->capacity; ++ i) {
         entry_t* entry = &hm->entries[i];
@@ -84,7 +81,6 @@ static void hash_map_resize(hash_map_t *hm, size_t capacity) {
         entry_t* dest = hash_map_find_entry(entries, capacity, entry->key);
         dest->key = entry->key;
         dest->value = entry->value;
-        hm->count += 1;
     }
 
     heap_free(hm->entries);
@@ -103,7 +99,7 @@ bool hash_map_insert(hash_map_t* hm, obj_string_t* key, value_t value) {
         exit(33);
     }
 #endif
-    if (hm->count >= hm->capacity) {
+    if (hm->count >= hm->capacity * HASH_MAP_LOAD_BALANCE) {
         hash_map_resize(hm, NEW_CAPACITY(hm->capacity));
     }
     entry_t* entry = hash_map_find_entry(hm->entries, hm->capacity, key);
@@ -115,7 +111,7 @@ bool hash_map_insert(hash_map_t* hm, obj_string_t* key, value_t value) {
 
     entry->key = key;
     entry->value = value;
-    return true;
+    return is_new;
 }
 
 bool hash_map_fetch(hash_map_t* hm, obj_string_t* key, value_t* value) {

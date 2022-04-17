@@ -2,12 +2,14 @@
 #include "asserts.h"
 #include "include/hashmap.h"
 #include "include/constant.h"
+#include "include/buddy_alloc.h"
 
 TEST(basicTest) {
     hash_map_t hm;
     init_hash_map(&hm);
+    heap_init(malloc(10*1024*1024), 10*1024*1024);
     value_t a = {.num = 1},b = {.num = 2},c = {.num = 3};
-    
+
     obj_string_t* str1 = build_obj_string(4, "abcd", hash_string("abcd"));
     obj_string_t* str2 = build_obj_string(4, "xyz", hash_string("xyz"));
     obj_string_t* str3 = build_obj_string(4, "uiop", hash_string("uiop"));
@@ -33,15 +35,16 @@ TEST(basicTest) {
     ASSERT_W(hash_map_fetch(&hm, str3, &res));
     ASSERT_W(res.num == 3);
 
-    free(str1);
-    free(str2);
-    free(str3);
+    heap_free(str1);
+    heap_free(str2);
+    heap_free(str3);
     free_hash_map(&hm);
     return EXIT_SUCCESS;
 }
 
 TEST(reallocationTest) {
     hash_map_t hm;
+    heap_init(malloc(10*1024*1024), 10*1024*1024);
     srand(time(NULL));
     const int SIZE = 10000;
     const int STRING_SIZE = 15;
@@ -49,13 +52,14 @@ TEST(reallocationTest) {
     obj_string_t* strings[SIZE];
     for (size_t i = 0; i < SIZE; ++ i) {
         vals[i].num = rand();
-        char* str = malloc(STRING_SIZE);
+        vals[i].type = TYPE_INTEGER;
+        char* str = heap_alloc(STRING_SIZE);
         for (size_t j = 0; j < STRING_SIZE - 1; ++ j) {
             str[j] = (rand() % 10) + '0';
         }
         str[STRING_SIZE - 1] = '\0';
         strings[i] = build_obj_string(STRING_SIZE, str, strlen(str));
-        free(str);
+        heap_free(str);
     }
 
     for (size_t i = 0; i < SIZE; ++ i) {
@@ -66,6 +70,7 @@ TEST(reallocationTest) {
         value_t val;
         ASSERT_W(hash_map_fetch(&hm, strings[i], &val));
         ASSERT_W(val.num == vals[i].num);
+        ASSERT_W(TYPE_INTEGER == vals[i].type);
     }
 
     for (size_t i = 0; i < SIZE; i += rand() % 10 + 1) {
@@ -85,10 +90,8 @@ TEST(reallocationTest) {
     }
 
     for (size_t i = 0; i < SIZE; ++ i) {
-        free(strings[i]);
+        heap_free(strings[i]);
     }
-
-
 
     free_hash_map(&hm);
     return EXIT_SUCCESS;
