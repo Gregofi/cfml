@@ -12,6 +12,12 @@
 #include "include/objects.h"
 #include "include/buddy_alloc.h"
 
+/**
+ * Pending global variables to be saved to global_var hashmap
+ * When encountering a slot or function, we do not know if it
+ * belong to a class or is global. We save it here and then sort
+ * it out at the end of parsing.
+ */
 typedef struct globals_pending {
     size_t size;
     size_t capacity;
@@ -28,15 +34,6 @@ static void push_pending(globals_pending_t* globals, int value) {
         globals->data = heap_realloc(globals->data, globals->capacity * sizeof(*globals->data));
     }
     globals->data[globals->size++] = value;
-}
-
-static bool contains_pending(globals_pending_t* globals, int value) {
-    for (size_t i = 0; i < globals->size; ++i) {
-        if (globals->data[i] == value) {
-            return true;
-        }
-    }
-    return false;
 }
 
 static void remove_pending(globals_pending_t* globals, int value) {
@@ -261,15 +258,8 @@ uint8_t* parse_constant_pool(vm_t* vm, uint8_t *file, chunk_t *chunk) {
                 fun_obj->length = p.second;
                 file += 10 + p.first;
                 size_t ci = add_constant(&chunk->pool, fun);
-                // Add function to global map
+                // Add function to globals pending
                 push_pending(&pending, ci);
-                // if (!hash_map_insert(&vm->global_var, AS_STRING(chunk->pool.data[fun_obj->name]), fun)) {
-                //     fprintf(stderr, "Warning, '%s' is already in global variables.\n", AS_CSTRING(chunk->pool.data[fun_obj->name]));
-                // }
-#ifdef __DEBUG__
-                // printf("Saving function '%s' into globals(%d).\n", AS_CSTRING(chunk->pool.data[fun_obj->name]), vm->global_var.count);
-                // dissasemble_global_variables(stdout, vm);
-#endif
                 break;
             }
             case CD_CLASS: {
@@ -292,6 +282,7 @@ uint8_t* parse_constant_pool(vm_t* vm, uint8_t *file, chunk_t *chunk) {
                         fprintf(stderr, "Wrong object type on function.\n");
                         exit(8);
                     }
+                    // This will certainly not be global object, so remove it from global pendig
                     remove_pending(&pending, index);
                 }
                 add_constant(&chunk->pool, class);
@@ -302,10 +293,6 @@ uint8_t* parse_constant_pool(vm_t* vm, uint8_t *file, chunk_t *chunk) {
                 size_t ci = add_constant(&chunk->pool, slot);
                 // Either global or field, add it to globals
                 push_pending(&pending, ci);
-#ifdef __DEBUG__
-                // printf("Saving slot '%s' into globals(%d).\n", AS_CSTRING(chunk->pool.data[AS_SLOT(slot)->index]), vm->global_var.count);
-                // dissasemble_global_variables(stdout, vm);
-#endif
                 file += 3;
                 break;
             }
@@ -336,7 +323,7 @@ uint8_t* parse_constant_pool(vm_t* vm, uint8_t *file, chunk_t *chunk) {
     return file;
 }
 
-uint8_t* parse_globals(vm_t *vm, chunk_t* chunk, uint8_t* code) {
+uint8_t* parse_globals(chunk_t* chunk, uint8_t* code) {
     uint16_t globals = READ_2BYTES(code);
     code += 2;
     for(uint16_t i = 0; i < globals; ++ i) {
@@ -354,7 +341,7 @@ void parse(vm_t* vm, const char* name) {
     uint8_t *file_ptr = file;
     file_ptr = parse_constant_pool(vm, file_ptr, &chunk);
 
-    file_ptr = parse_globals(vm, &chunk, file_ptr);
+    file_ptr = parse_globals(&chunk, file_ptr);
     // Read entry point
     uint16_t entry_point = READ_2BYTES(file_ptr);
     vm->bytecode = chunk;

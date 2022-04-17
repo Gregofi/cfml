@@ -18,7 +18,7 @@ typedef enum {
 } constant_serialization_type_t;
 
 void parse(vm_t* vm, const char* filename);
-uint8_t* parse_globals(vm_t *vm, chunk_t* chunk, uint8_t* code);
+uint8_t* parse_globals(chunk_t* chunk, uint8_t* code);
 uint8_t* parse_constant_pool(vm_t* vm, uint8_t *file, chunk_t *chunk);
 /// Parses 'intruction_count' instruciton from 'bytecode'.
 /// @return Returns pair containing number of bytes read and size
