@@ -301,7 +301,13 @@ value_t dispatch_builtin(obj_string_t* method_name, value_t receiver, value_t ri
     } else if (IS_ARRAY(receiver)) {
         obj_array_t* arr = AS_ARRAY(receiver);
         if (CMP(method_name->data, "set", "set")) {
+// This code, althrough probably wrong, runs on clang without problem
+// whereas the second version will cause segmentation fault.
+#if defined(__clang__)
             arr->values[right_right_side.num] = right_side;
+#else
+            arr->values[right_side.num] = right_right_side;
+#endif
             return right_side;
         } else if (CMP(method_name->data, "get", "get")) {
             return arr->values[right_side.num];
