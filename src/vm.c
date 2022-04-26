@@ -301,13 +301,8 @@ value_t dispatch_builtin(obj_string_t* method_name, value_t receiver, value_t ri
     } else if (IS_ARRAY(receiver)) {
         obj_array_t* arr = AS_ARRAY(receiver);
         if (CMP(method_name->data, "set", "set")) {
-// This code, althrough probably wrong, runs on clang without problem
-// whereas the second version will cause segmentation fault.
-#if defined(__clang__)
+            assert(IS_NUMBER(right_right_side));
             arr->values[right_right_side.num] = right_side;
-#else
-            arr->values[right_side.num] = right_right_side;
-#endif
             return right_side;
         } else if (CMP(method_name->data, "get", "get")) {
             return arr->values[right_side.num];
@@ -500,7 +495,9 @@ interpret_result_t interpret(vm_t* vm)
                     // so it also fails if a method isn't in any classes.
                     } else {
                         // Dispatch builtin also handles calls to non-existing method as it's side-effect.
-                        value_t result = dispatch_builtin(method_name, walk, pop(&vm->op_stack), args_cnt == 2 ? NULL_VAL : pop(&vm->op_stack));
+                        value_t first_arg = pop(&vm->op_stack);
+                        value_t second_arg = (args_cnt == 3) ? pop(&vm->op_stack) : NULL_VAL;
+                        value_t result = dispatch_builtin(method_name, walk, first_arg, second_arg);
                         pop(&vm->op_stack); // Pop one more for the receiver
                         push(&vm->op_stack, result);
                         break;
