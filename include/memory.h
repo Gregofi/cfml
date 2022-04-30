@@ -28,10 +28,19 @@ typedef struct {
 
 /* ============= GC INTERNALS =============== */
 
-static void mark_object(obj_t* obj);
+/**
+ * Marks value that is object.
+ */
+static void mark_object(obj_t* obj, vm_t* vm);
 
-static void mark_val(value_t val);
+/**
+ * Marks given value.
+ */
+static void mark_val(value_t val, vm_t* vm);
 
+/**
+ * Marks all roots in the program and recursively linked nodes.
+ */
 static void mark_roots(vm_t* vm);
 
 void run_gc(vm_t* vm);

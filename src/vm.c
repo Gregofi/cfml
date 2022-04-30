@@ -89,6 +89,9 @@ void init_vm(vm_t* vm) {
     init_chunk(&vm->bytecode);
     init_frames(&vm->frames);
     init_hash_map(&vm->global_var);
+    vm->gray_capacity = 0;
+    vm->gray_cnt = 0;
+    vm->gray_stack = NULL;
 }
 
 void free_vm(vm_t* vm) {
@@ -96,6 +99,9 @@ void free_vm(vm_t* vm) {
     free_chunk(&vm->bytecode);
     free_hash_map(&vm->global_var);
     free_frames(&vm->frames);
+
+    // Use the system free function, not the heap_free for GC.
+    free(vm->gray_stack);
     init_vm(vm);
 }
 

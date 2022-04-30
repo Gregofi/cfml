@@ -6,6 +6,7 @@
 
 typedef struct {
     obj_t obj;
+    /// Fields size
     uint16_t size;
     hash_map_t methods;
     obj_string_t* fields[MAX_FIELDS];

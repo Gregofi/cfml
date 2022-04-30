@@ -49,6 +49,13 @@ typedef struct vm {
     hash_map_t global_var;
     // List of all fml objects
     obj_t* objects;
+
+    // ==== GC Internals ====
+    // The GC worklist
+    size_t gray_cnt;
+    size_t gray_capacity;
+    obj_t** gray_stack;
+
 } vm_t;
 
 void init_vm(vm_t* vm);

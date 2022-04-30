@@ -65,7 +65,6 @@ static obj_t* allocate_obj(size_t size, obj_type_t type, vm_t* vm) {
 
 /// Returns new dynamically allocated instance of obj_string_t.
 obj_string_t* build_obj_string(size_t len, const char* ptr, uint32_t hash, vm_t* vm) {
-    // obj_string_t* new_string = heap_alloc(sizeof(*new_string)+ len + 1);
     obj_string_t* new_string = (obj_string_t*)allocate_obj(sizeof(*new_string) + len + 1, OBJ_STRING, vm);
     new_string->length = len;
     strncpy(new_string->data, ptr, len);
