@@ -39,7 +39,7 @@ void free_stack(op_stack_t* stack);
 void push(op_stack_t* stack, value_t c);
 value_t pop();
 
-typedef struct {
+typedef struct vm {
     chunk_t bytecode;
     // There can't be any writes to bytecode after this address is set.
     uint8_t* ip;
@@ -47,6 +47,8 @@ typedef struct {
     call_frames_t frames;
     // Contains name of the global variables as key and it's values.
     hash_map_t global_var;
+    // List of all fml objects
+    obj_t* objects;
 } vm_t;
 
 void init_vm(vm_t* vm);

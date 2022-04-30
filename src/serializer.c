@@ -240,12 +240,12 @@ uint8_t* parse_constant_pool(vm_t* vm, uint8_t *file, chunk_t *chunk) {
             case CD_STRING: {
                 size_t length = READ_4BYTES(file + 1);
                 const char* str = (char*)(file + 5);
-                add_constant(&chunk->pool, OBJ_STRING_VAL(length, str, hash_string(str)));
+                add_constant(&chunk->pool, OBJ_STRING_VAL(length, str, hash_string(str), vm));
                 file += 5 + length;
                 break;
             }
             case CD_METHOD: {
-                value_t fun = OBJ_FUN_VAL();
+                value_t fun = OBJ_FUN_VAL(vm);
                 obj_function_t *fun_obj = AS_FUNCTION(fun);
                 fun_obj->name = READ_2BYTES(file + 1);
                 fun_obj->args = READ_BYTE(file + 3);
@@ -264,7 +264,7 @@ uint8_t* parse_constant_pool(vm_t* vm, uint8_t *file, chunk_t *chunk) {
             }
             case CD_CLASS: {
                 uint16_t members_cnt = READ_2BYTES(file + 1);
-                value_t class = OBJ_CLASS_VAL();
+                value_t class = OBJ_CLASS_VAL(vm);
                 obj_class_t* as_class = AS_CLASS(class);
                 // Save methods and member variables
                 file += 3;
@@ -289,7 +289,7 @@ uint8_t* parse_constant_pool(vm_t* vm, uint8_t *file, chunk_t *chunk) {
                 break;
             }
             case CD_SLOT: {
-                value_t slot = OBJ_SLOT_VAL(READ_2BYTES(file + 1));
+                value_t slot = OBJ_SLOT_VAL(READ_2BYTES(file + 1), vm);
                 size_t ci = add_constant(&chunk->pool, slot);
                 // Either global or field, add it to globals
                 push_pending(&pending, ci);

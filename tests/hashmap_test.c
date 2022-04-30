@@ -1,18 +1,21 @@
 #include <time.h>
 #include "asserts.h"
 #include "include/hashmap.h"
+#include "include/vm.h"
 #include "include/constant.h"
 #include "include/buddy_alloc.h"
 
 TEST(basicTest) {
     hash_map_t hm;
     init_hash_map(&hm);
+    vm_t vm;
+    init_vm(&vm);
     heap_init(malloc(10*1024*1024), 10*1024*1024);
     value_t a = {.num = 1},b = {.num = 2},c = {.num = 3};
 
-    obj_string_t* str1 = build_obj_string(4, "abcd", hash_string("abcd"));
-    obj_string_t* str2 = build_obj_string(4, "xyz", hash_string("xyz"));
-    obj_string_t* str3 = build_obj_string(4, "uiop", hash_string("uiop"));
+    obj_string_t* str1 = build_obj_string(4, "abcd", hash_string("abcd"), &vm);
+    obj_string_t* str2 = build_obj_string(4, "xyz", hash_string("xyz"), &vm);
+    obj_string_t* str3 = build_obj_string(4, "uiop", hash_string("uiop"), &vm);
     hash_map_insert(&hm, str1, a);
     hash_map_insert(&hm, str2, b);
     hash_map_insert(&hm, str3, c);
@@ -45,6 +48,9 @@ TEST(basicTest) {
 TEST(reallocationTest) {
     hash_map_t hm;
     heap_init(malloc(10*1024*1024), 10*1024*1024);
+    vm_t vm;
+    init_vm(&vm);
+    init_hash_map(&hm);
     srand(time(NULL));
     const int SIZE = 10000;
     const int STRING_SIZE = 15;
@@ -58,7 +64,7 @@ TEST(reallocationTest) {
             str[j] = (rand() % 10) + '0';
         }
         str[STRING_SIZE - 1] = '\0';
-        strings[i] = build_obj_string(STRING_SIZE, str, strlen(str));
+        strings[i] = build_obj_string(STRING_SIZE, str, strlen(str), &vm);
         heap_free(str);
     }
 

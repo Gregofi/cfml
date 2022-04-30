@@ -1,5 +1,9 @@
 #pragma once
-#include "stdlib.h"
+
+#include <stdlib.h>
+#include "include/constant.h"
+
+typedef struct vm vm_t;
 
 #define ARRAY_GROW_FACTOR 2
 #define INIT_ARRAY_SIZE 20
@@ -21,3 +25,13 @@ typedef struct {
 #define GREEN_COLOR_TERMINAL "\033[0;32m"
 #define RED_COLOR_TERMINAL "\033[0;31m"
 #define CLEAR_COLOR_TERMINAL "\033[0;0m"
+
+/* ============= GC INTERNALS =============== */
+
+static void mark_object(obj_t* obj);
+
+static void mark_val(value_t val);
+
+static void mark_roots(vm_t* vm);
+
+void run_gc(vm_t* vm);

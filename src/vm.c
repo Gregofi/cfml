@@ -84,6 +84,7 @@ value_t peek(op_stack_t* stack) {
 
 void init_vm(vm_t* vm) {
     vm->ip = NULL;
+    vm->objects = NULL;
     init_stack(&vm->op_stack);
     init_chunk(&vm->bytecode);
     init_frames(&vm->frames);
@@ -429,7 +430,7 @@ interpret_result_t interpret(vm_t* vm)
                 for (ssize_t i = class->size - 1; i >= 0; -- i) {
                     hash_map_insert(&fields, class->fields[i], pop(&vm->op_stack));
                 }
-                value_t instance = OBJ_INSTANCE_VAL(class, fields, pop(&vm->op_stack));
+                value_t instance = OBJ_INSTANCE_VAL(class, fields, pop(&vm->op_stack), vm);
                 push(&vm->op_stack, instance);
                 break;
             }
@@ -464,7 +465,7 @@ interpret_result_t interpret(vm_t* vm)
                 value_t init = pop(&vm->op_stack);
                 value_t size = pop(&vm->op_stack);
 
-                value_t array = OBJ_ARRAY_VAL(AS_NUMBER(size), init);
+                value_t array = OBJ_ARRAY_VAL(AS_NUMBER(size), init, vm);
                 push(&vm->op_stack, array);
                 break;
             }

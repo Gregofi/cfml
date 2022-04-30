@@ -221,6 +221,7 @@ void *heap_alloc(size_t size) {
 
 bool heap_free(void *blk) {
     free(blk);
+    return true;
 }
 
 void* heap_realloc(void* blk, size_t new_size) {

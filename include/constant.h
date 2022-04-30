@@ -5,6 +5,7 @@
 #include <string.h>
 #include <stdint.h>
 
+typedef struct vm vm_t;
 
 typedef enum {
     TYPE_INTEGER,
@@ -38,6 +39,9 @@ typedef struct {
 
 typedef struct obj {
     obj_type_t type;
+    // Used for GC
+    bool marked;
+    struct obj *next;
 } obj_t;
 
 typedef struct {
@@ -87,22 +91,23 @@ typedef struct {
     uint16_t* indexes;
 } global_indexes_t;
 
-
 void init_globals(global_indexes_t* globals);
 void write_global(global_indexes_t* globals, uint16_t index);
 void free_globals(global_indexes_t* globals);
 
-obj_string_t* build_obj_string(size_t len, const char* ptr, uint32_t hash);
+static obj_t* allocate_obj(size_t size, obj_type_t type, vm_t* vm);
+
+obj_string_t* build_obj_string(size_t len, const char* ptr, uint32_t hash, vm_t* vm);
 
 /// Allocates function object on heap and returns pointer to it, fields of function are zero initialized
 /// with exception of object, which is initialized correctly.
-obj_function_t* build_obj_fun();
+obj_function_t* build_obj_fun(vm_t* vm);
 
-obj_slot_t* build_obj_slot(uint16_t index);
+obj_slot_t* build_obj_slot(uint16_t index, vm_t* vm);
 
-obj_array_t* build_obj_array(size_t size, value_t init);
+obj_array_t* build_obj_array(size_t size, value_t init, vm_t* vm);
 
-obj_native_fun_t* build_obj_native(native_fun_t fun);
+obj_native_fun_t* build_obj_native(native_fun_t fun, vm_t* vm);
 
 // 'Constructor' functions for values.
 #define INTEGER_VAL(value) ((value_t){TYPE_INTEGER, {.num = (value)}})
@@ -113,10 +118,10 @@ obj_native_fun_t* build_obj_native(native_fun_t fun);
 /// Creates an object value containing string.
 /// @param len - Length of the string to copy.
 /// @param source - const char* pointer to the string to copy from.
-#define OBJ_STRING_VAL(len, source, hash) (OBJ_VAL((build_obj_string((len), (source), (hash)))))
-#define OBJ_FUN_VAL() (OBJ_VAL((build_obj_fun())))
-#define OBJ_SLOT_VAL(index) OBJ_VAL(build_obj_slot(index))
-#define OBJ_ARRAY_VAL(size, init) OBJ_VAL(build_obj_array((size), (init)))
+#define OBJ_STRING_VAL(len, source, hash, vm) (OBJ_VAL((build_obj_string((len), (source), (hash), (vm)))))
+#define OBJ_FUN_VAL(vm) (OBJ_VAL((build_obj_fun(vm))))
+#define OBJ_SLOT_VAL(index, vm) OBJ_VAL(build_obj_slot(index, vm))
+#define OBJ_ARRAY_VAL(size, init, vm) OBJ_VAL(build_obj_array((size), (init), (vm)))
 
 #define IS_NUMBER(value) ((value).type == TYPE_INTEGER)
 #define IS_BOOL(value) ((value).type == TYPE_BOOLEAN)
