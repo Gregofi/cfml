@@ -151,8 +151,6 @@ void *heap_alloc(size_t size) {
     while (!mem_arr[i]) {
         i++;
         if (i >= LEVELS) {
-            fprintf(stderr, "Couldn't allocate %zu bytes\n", size);
-            fprintf(stderr, "Size of the heap: %zu, taken blocks: %zu\n", heap_size, taken_blocks);
             return NULL;
         }
     }
