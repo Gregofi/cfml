@@ -22,6 +22,7 @@
 
 static struct fragment *mem_arr[LEVELS];
 static size_t heap_size;
+static size_t heap_taken;
 static struct fragment *mem;
 static size_t taken_blocks;
 FILE* flog;
@@ -102,7 +103,7 @@ static void split(struct fragment *f, size_t i) {
 
 void heap_log(char action) {
     if (flog != NULL) {
-        fprintf(flog, "%lu,%c,%lu\n", (unsigned long)time(NULL), action, 0LU);
+        fprintf(flog, "%lu,%c,%lu\n", (unsigned long)time(NULL), action, heap_taken);
     }
 }
 
@@ -115,6 +116,8 @@ void heap_init(void *mem_pool, size_t mem_size, const char* log)
             fprintf(stderr, "Couldn't open file for logging.\n");
             exit(33);
         }
+        fprintf(flog, "timestamp,event,heap\n");
+        heap_log('S');
     }
 
     if (mem_size == 0) {
@@ -163,6 +166,8 @@ void *heap_alloc(size_t size) {
 
     taken_blocks++;
     assert(walk->size >= size);
+    heap_taken += walk->size;
+    heap_log('A');
     return walk + 1;
 }
 
@@ -189,6 +194,7 @@ bool heap_free(void *blk) {
     if (!blk || !is_block(f))
         return false;
     set_taken(f, false);
+    heap_taken -= f->size;
 
     size_t i = log2int(f->size + frag_size);
 

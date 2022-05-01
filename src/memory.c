@@ -163,6 +163,7 @@ void* alloc_with_gc(size_t size, vm_t* vm) {
     if (ptr == NULL) {
         // Try to run gc
         run_gc(vm);
+        heap_log('G');
         ptr = heap_alloc(size);
         // If after the GC the allocation still failed, just die
         if (ptr == NULL) {

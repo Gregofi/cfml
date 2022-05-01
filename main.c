@@ -19,7 +19,7 @@ int main(int argc, const char* argv[]) {
     if (mempool == NULL) {
         fprintf(stderr, "Failed to allocate memory from the OS.\n");
     }
-    heap_init(mempool, MEMORY, NULL);
+    heap_init(mempool, MEMORY, "log.csv");
 #endif
 
     vm_t vm;
