@@ -109,7 +109,6 @@ static void sweep(vm_t* vm) {
     }
 }
 
-
 void run_gc(vm_t* vm) {
 #ifdef __DEBUG_GC__
     fputs(stderr, "-- GC start --\n");
@@ -127,4 +126,38 @@ void run_gc(vm_t* vm) {
 #ifdef __DEBUG_GC__
     fputs(stderr, "-- GC end --\n");
 #endif
+}
+
+void* alloc_with_gc(size_t size, vm_t* vm) {
+    void* ptr = heap_alloc(size);
+    if (ptr == NULL) {
+        // Try to run gc
+        run_gc(vm);
+        ptr = heap_alloc(size);
+        // If even then the allocation failed, just die
+        if (ptr == NULL) {
+            fprintf(stderr, "The heap is not big enough to allocate object of size %lu\n", size);
+            exit(11);
+        }
+    }
+    return ptr;
+}
+
+void* realloc_with_gc(void* ptr, size_t size, vm_t* vm) {
+    void* ret = heap_realloc(ptr, size);
+    if (ret == NULL && size != 0) {
+        run_gc(vm);
+        ret = heap_realloc(ptr, size);
+        if (ret == NULL) {
+            fprintf(stderr, "The heap is not big enough to allocate object of size %lu\n", size);
+            exit(11);
+        }
+    }
+    return ret;
+}
+
+void* calloc_with_gc(size_t size, size_t cnt, vm_t* vm) {
+    void* ret = alloc_with_gc(size * cnt, vm);
+    memset(ret, 0, size * cnt);
+    return ret;
 }

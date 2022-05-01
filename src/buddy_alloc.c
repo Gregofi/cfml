@@ -97,6 +97,7 @@ static void split(struct fragment *f, size_t i) {
     set_taken(buddy, false);
     add_free(buddy, i - 1);
 }
+
 #ifndef __SYSTEM_MEMORY__
 void heap_init(void *mem_pool, size_t mem_size)
 {

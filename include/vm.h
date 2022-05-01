@@ -23,7 +23,7 @@ typedef struct {
     size_t length;
 } call_frames_t;
 
-void push_frame(call_frames_t* call_frames, uint8_t* ip);
+void push_frame(vm_t* vm, uint8_t* ip);
 uint8_t* pop_frame(call_frames_t* call_frames);
 void init_frames(call_frames_t* call_frames);
 void free_frames(call_frames_t* call_frames);
@@ -36,7 +36,7 @@ typedef struct {
 
 void init_stack(op_stack_t* stack);
 void free_stack(op_stack_t* stack);
-void push(op_stack_t* stack, value_t c);
+void push(vm_t* stack, value_t c);
 value_t pop();
 
 typedef struct vm {

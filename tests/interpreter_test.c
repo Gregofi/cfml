@@ -25,15 +25,15 @@ TEST(DataStructureTest) {
     write_chunk(&vm.bytecode, 0);
     write_chunk(&vm.bytecode, 0);
 
-    push(&vm.op_stack, vm.bytecode.pool.data[0]);
-    push(&vm.op_stack, vm.bytecode.pool.data[1]);
-    push(&vm.op_stack, vm.bytecode.pool.data[0]);
-    push(&vm.op_stack, vm.bytecode.pool.data[1]);
-    push(&vm.op_stack, vm.bytecode.pool.data[0]);
-    push(&vm.op_stack, vm.bytecode.pool.data[1]);
-    push(&vm.op_stack, vm.bytecode.pool.data[0]);
-    push(&vm.op_stack, vm.bytecode.pool.data[1]);
-    push(&vm.op_stack, vm.bytecode.pool.data[0]);
+    push(&vm, vm.bytecode.pool.data[0]);
+    push(&vm, vm.bytecode.pool.data[1]);
+    push(&vm, vm.bytecode.pool.data[0]);
+    push(&vm, vm.bytecode.pool.data[1]);
+    push(&vm, vm.bytecode.pool.data[0]);
+    push(&vm, vm.bytecode.pool.data[1]);
+    push(&vm, vm.bytecode.pool.data[0]);
+    push(&vm, vm.bytecode.pool.data[1]);
+    push(&vm, vm.bytecode.pool.data[0]);
     // Force reallocation
     value_t x1 = pop(&vm.op_stack);
     value_t x2 = pop(&vm.op_stack);

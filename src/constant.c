@@ -53,7 +53,7 @@ void free_constant_pool(constant_pool_t* pool) {
 }
 
 static obj_t* allocate_obj(size_t size, obj_type_t type, vm_t* vm) {
-    obj_t* obj = heap_alloc(size);
+    obj_t* obj = alloc_with_gc(size, vm);
     obj->type = type;
     // GC: Object is not marked at init
     obj->marked = false;

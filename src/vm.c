@@ -18,10 +18,11 @@ call_frame_t* get_global_frame(call_frames_t* call_frames) {
     return &call_frames->frames[0];
 }
 
-void push_frame(call_frames_t* call_frames, uint8_t* ip) {
+void push_frame(vm_t* vm, uint8_t* ip) {
+    call_frames_t* call_frames = &vm->frames;
     if (call_frames->length >= call_frames->capacity) {
         call_frames->capacity = NEW_CAPACITY(call_frames->capacity);
-        call_frames->frames = heap_realloc(call_frames->frames, sizeof(*call_frames->frames) * call_frames->capacity);
+        call_frames->frames = realloc_with_gc(call_frames->frames, sizeof(*call_frames->frames) * call_frames->capacity, vm);
     }
 
     for(size_t i = 0; i < MAX_LOCALS; ++ i) {
@@ -59,11 +60,12 @@ void free_stack(op_stack_t* stack)
     heap_free(stack->data);
 }
 
-void push(op_stack_t* stack, value_t c)
+void push(vm_t* vm, value_t c)
 {
+    op_stack_t* stack = &vm->op_stack;
     if (stack->size >= stack->capacity) {
         stack->capacity = NEW_CAPACITY(stack->capacity);
-        stack->data = heap_realloc(stack->data, stack->capacity * sizeof(*stack->data));
+        stack->data = realloc_with_gc(stack->data, stack->capacity * sizeof(*stack->data), vm);
     }
 
     stack->data[stack->size++] = c;
@@ -233,7 +235,7 @@ bool interpret_print(vm_t* vm) {
         return false;
     }
 
-    push(&vm->op_stack, NULL_VAL);
+    push(vm, NULL_VAL);
 
     return true;
 }
@@ -242,7 +244,7 @@ interpret_result_t interpret_function_call(vm_t* vm, obj_function_t *func, uint8
 #ifdef __DEBUG__
     assert(func != NULL && func->obj.type == OBJ_FUNCTION);
 #endif
-    push_frame(&vm->frames, vm->ip);
+    push_frame(vm, vm->ip);
     // Populate the new frame with arguments
     call_frame_t* top_frame = get_top_frame(&vm->frames);
     // Function arguments are popped in reverse
@@ -357,7 +359,7 @@ void set_field(value_t ins, obj_string_t* field_name, value_t new_val) {
 
 interpret_result_t interpret(vm_t* vm)
 {
-    push_frame(&vm->frames, NULL);
+    push_frame(vm, NULL);
     for (;(size_t)(vm->ip - vm->bytecode.bytecode) < vm->bytecode.size;) {
 #ifdef __DEBUG__
         dissasemble_instruction(&vm->bytecode, vm->ip - vm->bytecode.bytecode);
@@ -382,7 +384,7 @@ interpret_result_t interpret(vm_t* vm)
                 break;
             case OP_LITERAL: {
                 uint16_t index = READ_WORD_IP(vm);
-                push(&vm->op_stack, vm->bytecode.pool.data[index]);
+                push(vm, vm->bytecode.pool.data[index]);
                 break;
             }
             case OP_PRINT:
@@ -392,7 +394,7 @@ interpret_result_t interpret(vm_t* vm)
                 break;
             case OP_GET_LOCAL: {
                 uint16_t index = READ_WORD_IP(vm);
-                push(&vm->op_stack, get_top_frame(&vm->frames)->locals_vector[index]);
+                push(vm, get_top_frame(&vm->frames)->locals_vector[index]);
                 break;
             }
             case OP_SET_LOCAL: {
@@ -405,7 +407,7 @@ interpret_result_t interpret(vm_t* vm)
                 obj_string_t* name = AS_STRING(vm->bytecode.pool.data[index]);
                 value_t val;
                 hash_map_fetch(&vm->global_var, name, &val);
-                push(&vm->op_stack, val);
+                push(vm, val);
                 break;
             }
             case OP_SET_GLOBAL: {
@@ -437,12 +439,12 @@ interpret_result_t interpret(vm_t* vm)
                     hash_map_insert(&fields, class->fields[i], pop(&vm->op_stack));
                 }
                 value_t instance = OBJ_INSTANCE_VAL(class, fields, pop(&vm->op_stack), vm);
-                push(&vm->op_stack, instance);
+                push(vm, instance);
                 break;
             }
             case OP_GET_FIELD: {
                 obj_string_t* field_name = AS_STRING(vm->bytecode.pool.data[READ_WORD_IP(vm)]);
-                push(&vm->op_stack, find_field(pop(&vm->op_stack), field_name));
+                push(vm, find_field(pop(&vm->op_stack), field_name));
                 break;
             }
             case OP_SET_FIELD: {
@@ -450,7 +452,7 @@ interpret_result_t interpret(vm_t* vm)
                 value_t val = pop(&vm->op_stack);
                 value_t instance = pop(&vm->op_stack);
                 set_field(instance, field_name, val);
-                push(&vm->op_stack, val);
+                push(vm, val);
                 break;
             }
             case OP_CALL_FUNCTION: {
@@ -472,7 +474,7 @@ interpret_result_t interpret(vm_t* vm)
                 value_t size = pop(&vm->op_stack);
 
                 value_t array = OBJ_ARRAY_VAL(AS_NUMBER(size), init, vm);
-                push(&vm->op_stack, array);
+                push(vm, array);
                 break;
             }
             case OP_CALL_METHOD: {
@@ -506,7 +508,7 @@ interpret_result_t interpret(vm_t* vm)
                         value_t second_arg = (args_cnt == 3) ? pop(&vm->op_stack) : NULL_VAL;
                         value_t result = dispatch_builtin(method_name, walk, first_arg, second_arg);
                         pop(&vm->op_stack); // Pop one more for the receiver
-                        push(&vm->op_stack, result);
+                        push(vm, result);
                         break;
                     }
                 }

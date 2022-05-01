@@ -4,7 +4,8 @@
 #include "include/dissasembler.h"
 #include "include/buddy_alloc.h"
 
-#define MEMORY 3500UL * 1024UL * 1024UL // 3.5 GBs
+#define MEGABYTES(val) ((val) * 1024UL * 1024UL)
+#define MEMORY MEGABYTES(1)
 
 int main(int argc, const char* argv[]) {
     if (argc < 3) {

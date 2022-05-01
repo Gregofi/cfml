@@ -26,6 +26,11 @@ typedef struct {
 #define RED_COLOR_TERMINAL "\033[0;31m"
 #define CLEAR_COLOR_TERMINAL "\033[0;0m"
 
+
+void* alloc_with_gc(size_t size, vm_t* vm);
+void* realloc_with_gc(void* ptr, size_t size, vm_t* vm);
+void* calloc_with_gc(size_t size, size_t cnt, vm_t* vm);
+
 /* ============= GC INTERNALS =============== */
 
 /**
