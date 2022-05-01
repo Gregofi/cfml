@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "include/buddy_alloc.h"
 
@@ -23,6 +24,7 @@ static struct fragment *mem_arr[LEVELS];
 static size_t heap_size;
 static struct fragment *mem;
 static size_t taken_blocks;
+FILE* flog;
 
 struct fragment {
     /* Next free segment in the same level */
@@ -98,9 +100,23 @@ static void split(struct fragment *f, size_t i) {
     add_free(buddy, i - 1);
 }
 
+void heap_log(char action) {
+    if (flog != NULL) {
+        fprintf(flog, "%lu,%c,%lu\n", (unsigned long)time(NULL), action, 0LU);
+    }
+}
+
 #ifndef __SYSTEM_MEMORY__
-void heap_init(void *mem_pool, size_t mem_size)
+void heap_init(void *mem_pool, size_t mem_size, const char* log)
 {
+    if (log != NULL) {
+        flog = fopen(log, "w");
+        if (!flog) {
+            fprintf(stderr, "Couldn't open file for logging.\n");
+            exit(33);
+        }
+    }
+
     if (mem_size == 0) {
         fprintf(stderr, "Warning: Initializing heap of size 0.\n");
     }

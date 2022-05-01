@@ -10,7 +10,7 @@ TEST(basicTest) {
     init_hash_map(&hm);
     vm_t vm;
     init_vm(&vm);
-    heap_init(malloc(10*1024*1024), 10*1024*1024);
+    heap_init(malloc(10*1024*1024), 10*1024*1024, NULL);
     value_t a = {.num = 1},b = {.num = 2},c = {.num = 3};
 
     obj_string_t* str1 = build_obj_string(4, "abcd", hash_string("abcd"), &vm);
@@ -47,7 +47,7 @@ TEST(basicTest) {
 
 TEST(reallocationTest) {
     hash_map_t hm;
-    heap_init(malloc(10*1024*1024), 10*1024*1024);
+    heap_init(malloc(10*1024*1024), 10*1024*1024, NULL);
     vm_t vm;
     init_vm(&vm);
     init_hash_map(&hm);

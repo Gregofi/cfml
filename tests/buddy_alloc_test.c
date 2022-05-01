@@ -7,7 +7,7 @@
 TEST(basicTest) {
     uint8_t *p0, *p1, *p2;
     uint8_t* mem_pool = malloc(3 * 1048576);
-    heap_init(mem_pool, 2097152);
+    heap_init(mem_pool, 2097152, NULL);
     ASSERT_W((void*)(p0 = (uint8_t*)heap_alloc(1)) != NULL);
     memset(p0, 0, 1);
     ASSERT_W((void*)(p1 = (uint8_t*)heap_alloc(2)) != NULL);
@@ -26,7 +26,7 @@ TEST(basicTest2) {
     uint8_t *p0, *p1, *p2, *p3, *p4;
     static uint8_t  mem_pool[3 * 1048576];
 
-    heap_init(mem_pool, 2097152);
+    heap_init(mem_pool, 2097152, NULL);
     ASSERT_W((void*)(p0 = (uint8_t*)heap_alloc(512000)) != NULL);
     memset(p0, 0, 512000);
     ASSERT_W((void*)(p1 = (uint8_t*)heap_alloc(511000)) != NULL);
@@ -35,7 +35,7 @@ TEST(basicTest2) {
     memset(p2, 0, 26000);
     ASSERT_W(heap_done() == 3);
 
-    heap_init(mem_pool, 2097152);
+    heap_init(mem_pool, 2097152, NULL);
     ASSERT_W((void*)(p0 = (uint8_t*)heap_alloc(1000000)) != NULL);
     memset(p0, 0, 1000000);
     ASSERT_W((void*)(p1 = (uint8_t*)heap_alloc(250000)) != NULL);
@@ -57,7 +57,7 @@ TEST(basicTest2) {
 
     ASSERT_W(heap_done() == 0);
 
-    heap_init(mem_pool, 2359296);
+    heap_init(mem_pool, 2359296, NULL);
     ASSERT_W((void*)(p0 = (uint8_t*)heap_alloc(1000000)) != NULL);
     memset(p0, 0, 1000000);
     ASSERT_W((void*)(p1 = (uint8_t*)heap_alloc(500000)) != NULL);
@@ -72,7 +72,7 @@ TEST(basicTest2) {
     ASSERT_W(heap_free(p1));
     ASSERT_W(heap_done() == 1);
 
-    heap_init(mem_pool, 2359296);
+    heap_init(mem_pool, 2359296, NULL);
     ASSERT_W((void*)(p0 = (uint8_t*)heap_alloc(1000000)) != NULL);
     memset(p0, 0, 1000000);
     ASSERT_W(!heap_free(p0 + 1000));
@@ -83,7 +83,7 @@ TEST(basicTest2) {
 
 TEST(extensiveTest) {
     static uint8_t  mem_pool[3 * 1048576];
-    heap_init(mem_pool, 2359296);
+    heap_init(mem_pool, 2359296, NULL);
     void* ptrs[10000];
     for (size_t i = 0; i < 10000; ++i) {
         int *p;
