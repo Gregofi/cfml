@@ -5,21 +5,57 @@
 #include "include/buddy_alloc.h"
 
 #define MEGABYTES(val) ((val) * 1024UL * 1024UL)
-#define MEMORY MEGABYTES(2500)
+
+const char *usage =
+"usage: fml command file [options...]\n"
+"    command:\n"
+"        - execute - executes given bytecode\n"
+"    options:\n"
+"        --heap-log file - Logs heap activity into given file\n"
+"        --heap-size size - Limits the heap with given size in megabytes\n";
+
+void print_usage() {
+    fprintf(stderr, "%s", usage);
+}
 
 int main(int argc, const char* argv[]) {
     if (argc < 3) {
-        fprintf(stderr, "Usage: %s command file\n", argv[0]);
+        print_usage();
         exit(2);
+    }
+
+    const char* log = NULL;
+    size_t heap_size = MEGABYTES(2500);
+
+    // Parse command line args
+    for (ssize_t i = 1; i < argc; ++ i) {
+        if (strcmp(argv[i], "--heap-log") == 0) {
+            if (i + 1 >= argc) {
+                print_usage();
+                exit(2);
+            }
+            log = argv[++i];
+        }
+        if (strcmp(argv[i], "--heap-size") == 0) {
+            if (i + 1 >= argc) {
+                print_usage();
+                exit(2);
+            }
+            heap_size = MEGABYTES(atol(argv[++i]));
+            if (heap_size == 0) {
+                print_usage();
+                exit(2);
+            }
+        }
     }
 
     /* Initialize memory */
 #ifndef __SYSTEM_MEMORY__
-    void* mempool = malloc(MEMORY);
+    void* mempool = malloc(heap_size);
     if (mempool == NULL) {
         fprintf(stderr, "Failed to allocate memory from the OS.\n");
     }
-    heap_init(mempool, MEMORY, "log.csv");
+    heap_init(mempool, heap_size, log);
 #endif
 
     vm_t vm;

@@ -216,6 +216,9 @@ void* heap_realloc(void* blk, size_t new_size) {
         return NULL;
     }
     void* new_blk = heap_alloc(new_size);
+    if (new_blk == NULL) {
+        return NULL;
+    }
     struct fragment *f = (struct fragment*)blk - 1;
     memcpy(new_blk, blk, f->size);
     heap_free(blk);
