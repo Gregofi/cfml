@@ -63,8 +63,8 @@ static entry_t* hash_map_find_entry(entry_t* entries, size_t capacity, obj_strin
     }
 }
 
-static void hash_map_resize(hash_map_t *hm, size_t capacity) {
-    entry_t* entries = heap_calloc(capacity, sizeof(*entries));
+static void hash_map_resize(hash_map_t *hm, size_t capacity, vm_t* vm) {
+    entry_t* entries = calloc_with_gc(capacity, sizeof(*entries), vm);
     if (entries == NULL) {
         fprintf(stderr, "HashMap run out of memory.\n");
         exit(37);
@@ -88,7 +88,7 @@ static void hash_map_resize(hash_map_t *hm, size_t capacity) {
     hm->capacity = capacity;
 }
 
-bool hash_map_insert(hash_map_t* hm, obj_string_t* key, value_t value) {
+bool hash_map_insert(hash_map_t* hm, obj_string_t* key, value_t value, vm_t* vm) {
 #ifdef __DEBUG__
     if (key->obj.type != OBJ_STRING) {
         fprintf(stderr, "Hashmap key is '");
@@ -100,7 +100,7 @@ bool hash_map_insert(hash_map_t* hm, obj_string_t* key, value_t value) {
     }
 #endif
     if (hm->count >= hm->capacity * HASH_MAP_LOAD_BALANCE) {
-        hash_map_resize(hm, NEW_CAPACITY(hm->capacity));
+        hash_map_resize(hm, NEW_CAPACITY(hm->capacity), vm);
     }
     entry_t* entry = hash_map_find_entry(hm->entries, hm->capacity, key);
     bool is_new = entry->key == NULL;

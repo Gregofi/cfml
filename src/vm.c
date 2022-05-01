@@ -436,7 +436,7 @@ interpret_result_t interpret(vm_t* vm)
                 hash_map_t fields;
                 init_hash_map(&fields);
                 for (ssize_t i = class->size - 1; i >= 0; -- i) {
-                    hash_map_insert(&fields, class->fields[i], pop(&vm->op_stack));
+                    hash_map_insert(&fields, class->fields[i], pop(&vm->op_stack), vm);
                 }
                 value_t instance = OBJ_INSTANCE_VAL(class, fields, pop(&vm->op_stack), vm);
                 push(vm, instance);

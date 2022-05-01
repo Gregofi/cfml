@@ -138,7 +138,7 @@ static void prepare_jumps(const chunk_t* chunk, hash_map_t* jump_map) {
     }
 }
 
-size_t_pair_t parse_bytecode(uint8_t* bytecode, size_t instruction_count, chunk_t* chunk, hash_map_t* labels) {
+size_t_pair_t parse_bytecode(uint8_t* bytecode, size_t instruction_count, chunk_t* chunk, hash_map_t* labels, vm_t* vm) {
     size_t byte_size = 0;
     size_t jumps_cnt = 0;
     while (instruction_count != 0) {
@@ -178,7 +178,7 @@ size_t_pair_t parse_bytecode(uint8_t* bytecode, size_t instruction_count, chunk_
             // Special cases
             case OP_LABEL: {
                 obj_string_t* str = AS_STRING(chunk->pool.data[READ_2BYTES(bytecode + byte_size + 1)]);
-                hash_map_insert(labels, str, INTEGER_VAL(chunk->size));
+                hash_map_insert(labels, str, INTEGER_VAL(chunk->size), vm);
                 write_chunk(chunk, bytecode[byte_size]);
                 write_chunk(chunk, bytecode[byte_size + 1]);
                 write_chunk(chunk, bytecode[byte_size + 2]);
@@ -254,7 +254,7 @@ uint8_t* parse_constant_pool(vm_t* vm, uint8_t *file, chunk_t *chunk) {
 
                 uint32_t bytecode_length = READ_4BYTES(file + 6);
                 // Read the bytecode and update the length to bytes instead of instruction count
-                size_t_pair_t p = parse_bytecode(file + 10, bytecode_length, chunk, &labels);
+                size_t_pair_t p = parse_bytecode(file + 10, bytecode_length, chunk, &labels, vm);
                 fun_obj->length = p.second;
                 file += 10 + p.first;
                 size_t ci = add_constant(&chunk->pool, fun);
@@ -273,7 +273,7 @@ uint8_t* parse_constant_pool(vm_t* vm, uint8_t *file, chunk_t *chunk) {
                     file += 2;
                     if (IS_FUNCTION(chunk->pool.data[index])) {
                         obj_function_t* fun = AS_FUNCTION(chunk->pool.data[index]);
-                        hash_map_insert(&as_class->methods, AS_STRING(chunk->pool.data[fun->name]), chunk->pool.data[index]);
+                        hash_map_insert(&as_class->methods, AS_STRING(chunk->pool.data[fun->name]), chunk->pool.data[index], vm);
                     } else if (IS_SLOT(chunk->pool.data[index])) {
                         obj_slot_t* slot = AS_SLOT(chunk->pool.data[index]);
                         obj_string_t* name = AS_STRING(chunk->pool.data[slot->index]);
@@ -310,9 +310,9 @@ uint8_t* parse_constant_pool(vm_t* vm, uint8_t *file, chunk_t *chunk) {
     for (size_t i = 0; i < pending.size; ++i) {
         value_t val = chunk->pool.data[pending.data[i]];
         if (IS_SLOT(val)) {
-            hash_map_insert(&vm->global_var, AS_STRING(chunk->pool.data[AS_SLOT(val)->index]), NULL_VAL);
+            hash_map_insert(&vm->global_var, AS_STRING(chunk->pool.data[AS_SLOT(val)->index]), NULL_VAL, vm);
         } else if (IS_FUNCTION(val)) {
-            hash_map_insert(&vm->global_var, AS_STRING(chunk->pool.data[AS_FUNCTION(val)->name]), val);
+            hash_map_insert(&vm->global_var, AS_STRING(chunk->pool.data[AS_FUNCTION(val)->name]), val, vm);
         } else {
             fprintf(stderr, "Unknown object in globals pending.\n");
             exit(22);

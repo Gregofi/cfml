@@ -23,4 +23,4 @@ uint8_t* parse_constant_pool(vm_t* vm, uint8_t *file, chunk_t *chunk);
 /// Parses 'intruction_count' instruciton from 'bytecode'.
 /// @return Returns pair containing number of bytes read and size
 ///         of the new instructions stored (jumps are smaller when not parsed)
-size_t_pair_t parse_bytecode(uint8_t* bytecode, size_t instruction_count, chunk_t* chunk, hash_map_t* labels);
+size_t_pair_t parse_bytecode(uint8_t* bytecode, size_t instruction_count, chunk_t* chunk, hash_map_t* labels, vm_t* vm);

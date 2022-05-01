@@ -30,7 +30,10 @@ void free_hash_map(hash_map_t* hm);
 /// djb2 hash function, taken from http://www.cse.yorku.ca/~oz/hash.html.
 unsigned long hash_string(const char *str);
 
-bool hash_map_insert(hash_map_t* hm, obj_string_t* key, value_t value);
+/**
+ * Inserts value into hashmap under given key. Needs vm because of GC
+ */
+bool hash_map_insert(hash_map_t* hm, obj_string_t* key, value_t value, vm_t* vm);
 
 bool hash_map_fetch(hash_map_t* hm, obj_string_t* key, value_t* value);
 
