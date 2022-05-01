@@ -26,6 +26,12 @@ typedef struct {
 #define RED_COLOR_TERMINAL "\033[0;31m"
 #define CLEAR_COLOR_TERMINAL "\033[0;0m"
 
+// Borrowed from linux kernel
+#if __has_attribute(__fallthrough__)
+# define fallthrough                    __attribute__((__fallthrough__))
+#else
+# define fallthrough                    do {} while (0)  /* fallthrough */
+#endif
 
 void* alloc_with_gc(size_t size, vm_t* vm);
 void* realloc_with_gc(void* ptr, size_t size, vm_t* vm);

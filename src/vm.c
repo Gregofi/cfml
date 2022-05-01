@@ -423,7 +423,7 @@ interpret_result_t interpret(vm_t* vm)
                     vm->ip += 3;
                     break;
                 }
-            // Else fall through
+                fallthrough;
             }
             case OP_JUMP: {
                 // Jump index is not in little endian.
