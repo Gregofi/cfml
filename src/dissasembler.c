@@ -71,8 +71,9 @@ void dissasemble_object(FILE* stream, obj_t* obj) {
         }
         case OBJ_CLASS: {
             obj_class_t* class = (obj_class_t*)obj;
+            (void)class; // TODO
             break;
-        }            
+        }
         default:
             fprintf(stream, "Unknown object");
             break;

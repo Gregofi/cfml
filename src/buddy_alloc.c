@@ -93,7 +93,7 @@ static void split(struct fragment *f, size_t i) {
     f->size = new_size - frag_size;
     struct fragment *buddy = (struct fragment *)((uint8_t *)f + new_size);
     *buddy = (struct fragment){NULL, new_size - frag_size, MAGIC_VAL};
-    if(!((uint8_t *)buddy - (uint8_t *)f == f->size + frag_size)) {
+    if(!((uint8_t *)buddy - (uint8_t *)f == (ssize_t)(f->size + frag_size))) {
         assert(false);
     }
     set_taken(buddy, false);
