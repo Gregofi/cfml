@@ -5,14 +5,14 @@
 #define ASSERT_W(expr)                                                                                      \
 if(!(expr))                                                                                                 \
 {                                                                                                           \
-printf("%s:%d - assertion failed in %s\n", __FILE__, __LINE__, __PRETTY_FUNCTION__);                        \
+printf("%s:%d - assertion failed in %s\n", __FILE__, __LINE__, __func__);                                   \
 return EXIT_FAILURE;                                                                                        \
 }
 
 #define ASSERT_EQ(a, b)                                                                                     \
 if((a) != (b))                                                                                              \
 {                                                                                                           \
-printf("%d:%d - assertion failed in %s\n", __FILE__, __LINE__, __PRETTY_FUNCTION__);                        \
+printf("%d:%d - assertion failed in %s\n", __FILE__, __LINE__, __func__);                                   \
 printf("a=%d, b=%d\n",a,b);                                                                                 \
 return EXIT_FAILURE;                                                                                        \
 } else void(0)
