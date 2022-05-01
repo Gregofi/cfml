@@ -4,6 +4,7 @@
 #include "include/bytecode.h"
 #include "include/constant.h"
 #include "include/memory.h"
+#include "include/objects.h"
 #include "include/vm.h"
 
 static size_t simple_instruction(const char *name, size_t offset) {
@@ -42,9 +43,10 @@ void dissasemble_object(FILE* stream, obj_t* obj) {
         case OBJ_FUNCTION:
             fprintf(stream, "Function '%d'", ((obj_function_t*)obj)->name);
             break;
-        case OBJ_INSTANCE:
+        case OBJ_INSTANCE: {
             fprintf(stream, "Instance of object");
             break;
+        }
         case OBJ_CLASS:
             fprintf(stream, "Class");
             break;

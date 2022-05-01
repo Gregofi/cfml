@@ -138,7 +138,7 @@ static void prepare_jumps(const chunk_t* chunk, hash_map_t* jump_map) {
     }
 }
 
-size_t_pair_t parse_bytecode(uint8_t* bytecode, size_t instruction_count, chunk_t* chunk, hash_map_t* labels, vm_t* vm) {
+size_t_pair_t parse_bytecode(uint8_t* bytecode, size_t instruction_count, hash_map_t* labels, vm_t* vm) {
     size_t byte_size = 0;
     size_t jumps_cnt = 0;
     while (instruction_count != 0) {
@@ -147,7 +147,7 @@ size_t_pair_t parse_bytecode(uint8_t* bytecode, size_t instruction_count, chunk_
             case OP_RETURN:
             case OP_ARRAY:
             case OP_DROP:
-                write_chunk(chunk, bytecode[byte_size]);
+                write_chunk(&vm->bytecode, bytecode[byte_size]);
                 byte_size += 1;
                 break;
             // three byte instructions
@@ -159,29 +159,29 @@ size_t_pair_t parse_bytecode(uint8_t* bytecode, size_t instruction_count, chunk_
             case OP_OBJECT:
             case OP_GET_FIELD:
             case OP_SET_FIELD:
-                write_chunk(chunk, bytecode[byte_size]);
+                write_chunk(&vm->bytecode, bytecode[byte_size]);
                 // Indexes are in little endian.
-                write_chunk(chunk, bytecode[byte_size + 1]);
-                write_chunk(chunk, bytecode[byte_size + 2]);
+                write_chunk(&vm->bytecode, bytecode[byte_size + 1]);
+                write_chunk(&vm->bytecode, bytecode[byte_size + 2]);
                 byte_size += 3;
                 break;
             // four byte instruction
             case OP_CALL_FUNCTION:
             case OP_PRINT:
             case OP_CALL_METHOD:
-                write_chunk(chunk, bytecode[byte_size]);
-                write_chunk(chunk, bytecode[byte_size + 1]);
-                write_chunk(chunk, bytecode[byte_size + 2]);
-                write_chunk(chunk, bytecode[byte_size + 3]);
+                write_chunk(&vm->bytecode, bytecode[byte_size]);
+                write_chunk(&vm->bytecode, bytecode[byte_size + 1]);
+                write_chunk(&vm->bytecode, bytecode[byte_size + 2]);
+                write_chunk(&vm->bytecode, bytecode[byte_size + 3]);
                 byte_size += 4;
                 break;
             // Special cases
             case OP_LABEL: {
-                obj_string_t* str = AS_STRING(chunk->pool.data[READ_2BYTES(bytecode + byte_size + 1)]);
-                hash_map_insert(labels, str, INTEGER_VAL(chunk->size), vm);
-                write_chunk(chunk, bytecode[byte_size]);
-                write_chunk(chunk, bytecode[byte_size + 1]);
-                write_chunk(chunk, bytecode[byte_size + 2]);
+                obj_string_t* str = AS_STRING(vm->bytecode.pool.data[READ_2BYTES(bytecode + byte_size + 1)]);
+                hash_map_insert(labels, str, INTEGER_VAL(vm->bytecode.size), vm);
+                write_chunk(&vm->bytecode, bytecode[byte_size]);
+                write_chunk(&vm->bytecode, bytecode[byte_size + 1]);
+                write_chunk(&vm->bytecode, bytecode[byte_size + 2]);
                 byte_size += 3;
                 break;
             }
@@ -189,10 +189,10 @@ size_t_pair_t parse_bytecode(uint8_t* bytecode, size_t instruction_count, chunk_
             // Now they are also 4 bytes.
             case OP_JUMP:
             case OP_BRANCH:
-                write_chunk(chunk, bytecode[byte_size]);
-                write_chunk(chunk, bytecode[byte_size + 1]);
-                write_chunk(chunk, bytecode[byte_size + 2]);
-                write_chunk(chunk, 0xFF); // Dummy value
+                write_chunk(&vm->bytecode, bytecode[byte_size]);
+                write_chunk(&vm->bytecode, bytecode[byte_size + 1]);
+                write_chunk(&vm->bytecode, bytecode[byte_size + 2]);
+                write_chunk(&vm->bytecode, 0xFF); // Dummy value
                 byte_size += 3;
                 jumps_cnt += 1;
                 break;
@@ -213,8 +213,9 @@ int compare_strings(const void *x, const void *y) {
     return strcmp(str_x->data, str_y->data);
 }
 
-uint8_t* parse_constant_pool(vm_t* vm, uint8_t *file, chunk_t *chunk) {
+uint8_t* parse_constant_pool(vm_t* vm, uint8_t *file) {
     // Read size of constant pool
+    chunk_t* chunk = &vm->bytecode;
     uint16_t size = READ_2BYTES(file);
     file += 2;
     hash_map_t labels;
@@ -250,11 +251,11 @@ uint8_t* parse_constant_pool(vm_t* vm, uint8_t *file, chunk_t *chunk) {
                 fun_obj->name = READ_2BYTES(file + 1);
                 fun_obj->args = READ_BYTE(file + 3);
                 fun_obj->locals = READ_2BYTES(file + 4);
-                fun_obj->entry_point = chunk->size; 
+                fun_obj->entry_point = chunk->size;
 
                 uint32_t bytecode_length = READ_4BYTES(file + 6);
                 // Read the bytecode and update the length to bytes instead of instruction count
-                size_t_pair_t p = parse_bytecode(file + 10, bytecode_length, chunk, &labels, vm);
+                size_t_pair_t p = parse_bytecode(file + 10, bytecode_length, &labels, vm);
                 fun_obj->length = p.second;
                 file += 10 + p.first;
                 size_t ci = add_constant(&chunk->pool, fun);
@@ -323,7 +324,8 @@ uint8_t* parse_constant_pool(vm_t* vm, uint8_t *file, chunk_t *chunk) {
     return file;
 }
 
-uint8_t* parse_globals(chunk_t* chunk, uint8_t* code) {
+uint8_t* parse_globals(vm_t* vm, uint8_t* code) {
+    chunk_t* chunk = &vm->bytecode;
     uint16_t globals = READ_2BYTES(code);
     code += 2;
     for(uint16_t i = 0; i < globals; ++ i) {
@@ -335,17 +337,14 @@ uint8_t* parse_globals(chunk_t* chunk, uint8_t* code) {
 }
 
 void parse(vm_t* vm, const char* name) {
-    chunk_t chunk;
-    init_chunk(&chunk);
     uint8_t *file = read_file(name);
     uint8_t *file_ptr = file;
-    file_ptr = parse_constant_pool(vm, file_ptr, &chunk);
+    file_ptr = parse_constant_pool(vm, file_ptr);
 
-    file_ptr = parse_globals(&chunk, file_ptr);
+    file_ptr = parse_globals(vm, file_ptr);
     // Read entry point
     uint16_t entry_point = READ_2BYTES(file_ptr);
-    vm->bytecode = chunk;
 
-    vm->ip = &chunk.bytecode[AS_FUNCTION((chunk.pool.data[entry_point]))->entry_point];
+    vm->ip = &vm->bytecode.bytecode[AS_FUNCTION((vm->bytecode.pool.data[entry_point]))->entry_point];
     free(file);
 }

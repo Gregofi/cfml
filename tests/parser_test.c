@@ -17,7 +17,7 @@ TEST(basicTest) {
     init_vm(&vm);
     chunk_t chunk;
     init_chunk(&chunk);
-    parse_constant_pool(&vm, arr, &chunk);
+    parse_constant_pool(&vm, arr);
 
     ASSERT_W(chunk.pool.len == 3);
     ASSERT_W(IS_STRING(chunk.pool.data[0]));

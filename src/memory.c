@@ -13,13 +13,14 @@ static void mark_object(obj_t* obj, vm_t* vm) {
 
         if (vm->gray_cnt >= vm->gray_capacity) {
             vm->gray_capacity = NEW_CAPACITY(vm->gray_capacity);
+            // Use the system function, not heap_realloc
             vm->gray_stack = realloc(vm->gray_stack, sizeof(*vm->gray_stack) * vm->gray_capacity);
         }
     }
 }
 
 static void mark_val(value_t val, vm_t* vm) {
-    // POD are not allocated on heap
+    // PODs are not allocated on heap
     if (IS_OBJ(val)) {
         mark_object(AS_OBJ(val), vm);
     }
@@ -34,10 +35,12 @@ static void mark_table(hash_map_t* table, vm_t* vm) {
 }
 
 static void mark_roots(vm_t* vm) {
+    // Mark everything that is on the stack
     for (size_t i = 0; i < vm->op_stack.size; ++i) {
         mark_val(vm->op_stack.data[i], vm);
     }
- 
+
+    // Mark global variables
     mark_table(&vm->global_var, vm);
 
     // Mark everything in constant pool
@@ -51,9 +54,11 @@ static void mark_roots(vm_t* vm) {
             mark_val(vm->frames.frames[i].locals_vector[j], vm);
         }
     }
-
 }
 
+/**
+ * Used to mark internal objects of other object (ie. for arrays, it marks all the values in the array)
+ */
 static void blacken(obj_t* obj, vm_t* vm) {
     switch (obj->type) {
         case OBJ_STRING:
@@ -143,6 +148,9 @@ void run_gc(vm_t* vm) {
 }
 
 void* alloc_with_gc(size_t size, vm_t* vm) {
+#ifdef __STRESS_GC__
+    run_gc(vm);
+#endif
     void* ptr = heap_alloc(size);
     if (ptr == NULL) {
         // Try to run gc
@@ -158,6 +166,9 @@ void* alloc_with_gc(size_t size, vm_t* vm) {
 }
 
 void* realloc_with_gc(void* ptr, size_t size, vm_t* vm) {
+#ifdef __STRESS_GC__
+    run_gc(vm);
+#endif
     void* ret = heap_realloc(ptr, size);
     if (ret == NULL && size != 0) {
         run_gc(vm);
