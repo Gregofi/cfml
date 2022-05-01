@@ -4,6 +4,7 @@
 #include "include/vm.h"
 #include "include/constant.h"
 #include "include/buddy_alloc.h"
+#include "include/dissasembler.h"
 
 static void mark_object(obj_t* obj, vm_t* vm) {
     // Check that we don't visit already visited object
@@ -24,18 +25,33 @@ static void mark_val(value_t val, vm_t* vm) {
     }
 }
 
-static void mark_roots(vm_t* vm) {
-    for (size_t i = 0; i < vm->op_stack.size; ++i) {
-        mark_val(vm->op_stack.data[i], vm);
-    }
-}
-
 static void mark_table(hash_map_t* table, vm_t* vm) {
     for (size_t i = 0; i < table->capacity; ++i) {
         entry_t* entry = &table->entries[i];
         mark_object((obj_t*)entry->key, vm);
         mark_val(entry->value, vm);
     }
+}
+
+static void mark_roots(vm_t* vm) {
+    for (size_t i = 0; i < vm->op_stack.size; ++i) {
+        mark_val(vm->op_stack.data[i], vm);
+    }
+ 
+    mark_table(&vm->global_var, vm);
+
+    // Mark everything in constant pool
+    for (size_t i = 0; i < vm->bytecode.pool.len; ++i) {
+        mark_val(vm->bytecode.pool.data[i], vm);
+    }
+
+    // Mark local variables in each frame
+    for (size_t i = 0; i < vm->frames.length; ++i) {
+        for (size_t j = 0; j < MAX_LOCALS; ++ j) {
+            mark_val(vm->frames.frames[i].locals_vector[j], vm);
+        }
+    }
+
 }
 
 static void blacken(obj_t* obj, vm_t* vm) {
@@ -93,6 +109,11 @@ static void sweep(vm_t* vm) {
             prev = obj;
             obj = obj->next;
         } else {
+#ifdef __DEBUG_GC__
+            fprintf(stderr, "Sweeping object ");
+            dissasemble_object(stderr, obj);
+            fprintf(stderr, "\n");
+#endif
             obj_t* white = obj;
             obj = obj->next;
             // If prev is not null it's the already processed part
@@ -111,20 +132,13 @@ static void sweep(vm_t* vm) {
 
 void run_gc(vm_t* vm) {
 #ifdef __DEBUG_GC__
-    fputs(stderr, "-- GC start --\n");
+    fprintf(stderr, "-- GC start --\n");
 #endif
     mark_roots(vm);
-    mark_table(&vm->global_var, vm);
-    // Mark local variables in each frame
-    for (size_t i = 0; i < vm->frames.length; ++i) {
-        for (size_t j = 0; j < MAX_LOCALS; ++ j) {
-            mark_val(vm->frames.frames[i].locals_vector[j], vm);
-        }
-    }
     trace_references(vm);
     sweep(vm);
 #ifdef __DEBUG_GC__
-    fputs(stderr, "-- GC end --\n");
+    fprintf(stderr, "-- GC end --\n");
 #endif
 }
 
@@ -134,7 +148,7 @@ void* alloc_with_gc(size_t size, vm_t* vm) {
         // Try to run gc
         run_gc(vm);
         ptr = heap_alloc(size);
-        // If even then the allocation failed, just die
+        // If after the GC the allocation still failed, just die
         if (ptr == NULL) {
             fprintf(stderr, "The heap is not big enough to allocate object of size %lu\n", size);
             exit(11);
