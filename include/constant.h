@@ -95,8 +95,6 @@ void init_globals(global_indexes_t* globals);
 void write_global(global_indexes_t* globals, uint16_t index);
 void free_globals(global_indexes_t* globals);
 
-static obj_t* allocate_obj(size_t size, obj_type_t type, vm_t* vm);
-
 obj_string_t* build_obj_string(size_t len, const char* ptr, uint32_t hash, vm_t* vm);
 
 /// Allocates function object on heap and returns pointer to it, fields of function are zero initialized
