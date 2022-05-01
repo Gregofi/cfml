@@ -17,6 +17,10 @@
  * When encountering a slot or function, we do not know if it
  * belong to a class or is global. We save it here and then sort
  * it out at the end of parsing.
+ *
+ * Keep in mind that these things needs to be reachable by the GC
+ * or they wouldn't be marked and be swept by the GC.
+ * Or the GC needs to be turned off for the existence of this.
  */
 typedef struct globals_pending {
     size_t size;
@@ -28,10 +32,10 @@ static void init_pending(globals_pending_t* globals) {
     memset(globals, 0, sizeof(*globals));
 }
 
-static void push_pending(globals_pending_t* globals, int value) {
+static void push_pending(globals_pending_t* globals, int value, vm_t* vm) {
     if (globals->capacity <= globals->size) {
         globals->capacity = NEW_CAPACITY(globals->capacity);
-        globals->data = heap_realloc(globals->data, globals->capacity * sizeof(*globals->data));
+        globals->data = realloc_with_gc(globals->data, globals->capacity * sizeof(*globals->data), vm);
     }
     globals->data[globals->size++] = value;
 }
@@ -138,7 +142,10 @@ static void prepare_jumps(const chunk_t* chunk, hash_map_t* jump_map) {
     }
 }
 
-size_t_pair_t parse_bytecode(uint8_t* bytecode, size_t instruction_count, hash_map_t* labels, vm_t* vm) {
+/// Parses 'intruction_count' instruciton from 'bytecode'.
+/// @return Returns pair containing number of bytes read and size
+///         of the new instructions stored (jumps are smaller when not parsed)
+static size_t_pair_t parse_bytecode(uint8_t* bytecode, size_t instruction_count, hash_map_t* labels, vm_t* vm) {
     size_t byte_size = 0;
     size_t jumps_cnt = 0;
     while (instruction_count != 0) {
@@ -213,7 +220,7 @@ int compare_strings(const void *x, const void *y) {
     return strcmp(str_x->data, str_y->data);
 }
 
-uint8_t* parse_constant_pool(vm_t* vm, uint8_t *file) {
+static uint8_t* parse_constant_pool(vm_t* vm, uint8_t *file) {
     // Read size of constant pool
     chunk_t* chunk = &vm->bytecode;
     uint16_t size = READ_2BYTES(file);
@@ -260,7 +267,7 @@ uint8_t* parse_constant_pool(vm_t* vm, uint8_t *file) {
                 file += 10 + p.first;
                 size_t ci = add_constant(&chunk->pool, fun);
                 // Add function to globals pending
-                push_pending(&pending, ci);
+                push_pending(&pending, ci, vm);
                 break;
             }
             case CD_CLASS: {
@@ -293,7 +300,7 @@ uint8_t* parse_constant_pool(vm_t* vm, uint8_t *file) {
                 value_t slot = OBJ_SLOT_VAL(READ_2BYTES(file + 1), vm);
                 size_t ci = add_constant(&chunk->pool, slot);
                 // Either global or field, add it to globals
-                push_pending(&pending, ci);
+                push_pending(&pending, ci, vm);
                 file += 3;
                 break;
             }
@@ -316,6 +323,8 @@ uint8_t* parse_constant_pool(vm_t* vm, uint8_t *file) {
             hash_map_insert(&vm->global_var, AS_STRING(chunk->pool.data[AS_FUNCTION(val)->name]), val, vm);
         } else {
             fprintf(stderr, "Unknown object in globals pending.\n");
+            dissasemble_value(stderr, val);
+            fprintf(stderr, "\n");
             exit(22);
         }
     }
@@ -324,7 +333,7 @@ uint8_t* parse_constant_pool(vm_t* vm, uint8_t *file) {
     return file;
 }
 
-uint8_t* parse_globals(vm_t* vm, uint8_t* code) {
+static uint8_t* parse_globals(vm_t* vm, uint8_t* code) {
     chunk_t* chunk = &vm->bytecode;
     uint16_t globals = READ_2BYTES(code);
     code += 2;
@@ -337,6 +346,8 @@ uint8_t* parse_globals(vm_t* vm, uint8_t* code) {
 }
 
 void parse(vm_t* vm, const char* name) {
+    // Turn of GC for parsing
+    vm->gc_on = false;
     uint8_t *file = read_file(name);
     uint8_t *file_ptr = file;
     file_ptr = parse_constant_pool(vm, file_ptr);
@@ -347,4 +358,5 @@ void parse(vm_t* vm, const char* name) {
 
     vm->ip = &vm->bytecode.bytecode[AS_FUNCTION((vm->bytecode.pool.data[entry_point]))->entry_point];
     free(file);
+    vm->gc_on = true;
 }

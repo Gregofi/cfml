@@ -1,0 +1,15 @@
+
+
+
+let parent = object
+begin
+end;
+
+let x = object extends parent
+begin
+    let b = 1;
+end;
+
+print("~\n", x);
+print("~\n", x);
+print("~\n", x);

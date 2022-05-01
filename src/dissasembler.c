@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <assert.h>
 #include <strings.h>
 
 #include "include/bytecode.h"
@@ -44,12 +45,34 @@ void dissasemble_object(FILE* stream, obj_t* obj) {
             fprintf(stream, "Function '%d'", ((obj_function_t*)obj)->name);
             break;
         case OBJ_INSTANCE: {
-            fprintf(stream, "Instance of object");
+            obj_instance_t* instance = (obj_instance_t*)obj;
+            fprintf(stream, "(class = ");
+            dissasemble_object(stderr, (obj_t*)instance->class);
+            fprintf(stderr, ", ");
+            if (!IS_NULL(instance->extends)) {
+                fprintf(stderr, "..=");
+                dissasemble_value(stream, instance->extends);
+                if (instance->class->size != 0) {
+                    printf(", ");
+                }
+            }
+            for (size_t i = 0; i < instance->class->size; ++ i) {
+                value_t val;
+                assert(hash_map_fetch(&instance->fields, instance->class->fields[i], &val));
+                fprintf(stream, "%s=", instance->class->fields[i]->data);
+                dissasemble_value(stream, val);
+                if (i + 1 != instance->class->size) {
+                    fprintf(stream, ", ");
+                }
+            }
+            fprintf(stream, ")");
+            fprintf(stream, " Instance of object");
             break;
         }
-        case OBJ_CLASS:
-            fprintf(stream, "Class");
+        case OBJ_CLASS: {
+            obj_class_t* class = (obj_class_t*)obj;
             break;
+        }            
         default:
             fprintf(stream, "Unknown object");
             break;

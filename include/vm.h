@@ -51,6 +51,8 @@ typedef struct vm {
     obj_t* objects;
 
     // ==== GC Internals ====
+    // If false then do not run GC
+    bool gc_on;
     // The GC worklist
     size_t gray_cnt;
     size_t gray_capacity;

@@ -1,4 +1,5 @@
 #include <memory.h>
+#include <assert.h>
 #include "include/memory.h"
 #include "include/objects.h"
 #include "include/vm.h"
@@ -16,6 +17,8 @@ static void mark_object(obj_t* obj, vm_t* vm) {
             // Use the system function, not heap_realloc
             vm->gray_stack = realloc(vm->gray_stack, sizeof(*vm->gray_stack) * vm->gray_capacity);
         }
+
+        vm->gray_stack[vm->gray_cnt ++] = obj;
     }
 }
 
@@ -137,6 +140,7 @@ static void sweep(vm_t* vm) {
 
 void run_gc(vm_t* vm) {
 #ifdef __DEBUG_GC__
+    assert(vm->gc_on);
     fprintf(stderr, "-- GC start --\n");
 #endif
     mark_roots(vm);
@@ -148,6 +152,10 @@ void run_gc(vm_t* vm) {
 }
 
 void* alloc_with_gc(size_t size, vm_t* vm) {
+    if (!vm->gc_on) {
+        return heap_alloc(size);
+    }
+
 #ifdef __STRESS_GC__
     run_gc(vm);
 #endif
@@ -166,6 +174,9 @@ void* alloc_with_gc(size_t size, vm_t* vm) {
 }
 
 void* realloc_with_gc(void* ptr, size_t size, vm_t* vm) {
+    if (!vm->gc_on) {
+        return heap_realloc(ptr, size);
+    }
 #ifdef __STRESS_GC__
     run_gc(vm);
 #endif

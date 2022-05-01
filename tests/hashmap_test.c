@@ -95,7 +95,7 @@ TEST(reallocationTest) {
         }
     }
 
-    for (size_t i = 0; i < SIZE; ++ i) {
+    for (ssize_t i = 0; i < SIZE; ++ i) {
         heap_free(strings[i]);
     }
 

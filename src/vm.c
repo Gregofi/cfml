@@ -91,6 +91,7 @@ void init_vm(vm_t* vm) {
     init_chunk(&vm->bytecode);
     init_frames(&vm->frames);
     init_hash_map(&vm->global_var);
+    vm->gc_on = true;
     vm->gray_capacity = 0;
     vm->gray_cnt = 0;
     vm->gray_stack = NULL;
@@ -113,7 +114,7 @@ int compare_str_pointers(const void* x, const void* y) {
     return strcmp( str1->data, str2->data );
 }
 
-bool print_value(value_t val) {
+bool print_value(value_t val, vm_t* vm) {
     switch (val.type) {
         case TYPE_INTEGER:
             printf("%d", AS_NUMBER(val));
@@ -130,7 +131,7 @@ bool print_value(value_t val) {
                     obj_array_t* array = AS_ARRAY(val);
                     printf("[");
                     for (size_t i = 0; i < array->size; ++ i) {
-                        print_value(array->values[i]);
+                        print_value(array->values[i], vm);
                         if (i != array->size - 1) {
                             printf(", ");
                         }
@@ -139,9 +140,10 @@ bool print_value(value_t val) {
                     break;
                 }
                 case OBJ_INSTANCE: {
+                    vm->gc_on = false;
                     obj_instance_t* instance = AS_INSTANCE(val);
                     // Fields have to be printed in lexicographical order.
-                    obj_string_t** fields = heap_alloc(instance->class->size * sizeof(*fields));
+                    obj_string_t** fields = alloc_with_gc(instance->class->size * sizeof(*fields), vm);
                     for (size_t i = 0; i < instance->class->size; ++ i) {
                         fields[i] = instance->class->fields[i];
                     }
@@ -149,7 +151,7 @@ bool print_value(value_t val) {
                     printf("object(");
                     if (!IS_NULL(instance->extends)) {
                         printf("..=");
-                        print_value(instance->extends);
+                        print_value(instance->extends, vm);
                         if (instance->class->size != 0) {
                             printf(", ");
                         }
@@ -158,12 +160,13 @@ bool print_value(value_t val) {
                         value_t val;
                         hash_map_fetch(&instance->fields, fields[i], &val);
                         printf("%s=", fields[i]->data);
-                        print_value(val);
+                        print_value(val, vm);
                         if (i != instance->class->size - 1) {
                             printf(", ");
                         }
                     }
                     printf(")");
+                    vm->gc_on = true;
                     break;
                 }
                 default:
@@ -196,7 +199,7 @@ bool interpret_print(vm_t* vm) {
     for(const char* ptr = str; *ptr != '\0'; ptr ++) {
         if (*ptr == '~') {
             value_t val = vm->op_stack.data[vm->op_stack.size + i];
-            if (!print_value(val)) {
+            if (!print_value(val, vm)) {
                 return false;
             }
             i += 1;
@@ -438,7 +441,12 @@ interpret_result_t interpret(vm_t* vm)
                 for (ssize_t i = class->size - 1; i >= 0; -- i) {
                     hash_map_insert(&fields, class->fields[i], pop(&vm->op_stack), vm);
                 }
-                value_t instance = OBJ_INSTANCE_VAL(class, fields, pop(&vm->op_stack), vm);
+                // POP NEEDS TO BE DONE AFTER.
+                // If it was done before, the GC could potentially collect the extends value before the object
+                // was created.
+                value_t extends = peek(&vm->op_stack);
+                value_t instance = OBJ_INSTANCE_VAL(class, fields, extends, vm);
+                pop(&vm->op_stack);
                 push(vm, instance);
                 break;
             }
