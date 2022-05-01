@@ -80,8 +80,8 @@ value_t pop(op_stack_t* stack)
     return stack->data[--stack->size];
 }
 
-value_t peek(op_stack_t* stack) {
-    return stack->data[stack->size - 1];
+value_t peek(op_stack_t* stack, size_t i) {
+    return stack->data[stack->size - i];
 }
 
 void init_vm(vm_t* vm) {
@@ -402,7 +402,7 @@ interpret_result_t interpret(vm_t* vm)
             }
             case OP_SET_LOCAL: {
                 uint16_t index = READ_WORD_IP(vm);
-                get_top_frame(&vm->frames)->locals_vector[index] = peek(&vm->op_stack);
+                get_top_frame(&vm->frames)->locals_vector[index] = peek(&vm->op_stack, 1);
                 break;
             }
             case OP_GET_GLOBAL: {
@@ -416,7 +416,7 @@ interpret_result_t interpret(vm_t* vm)
             case OP_SET_GLOBAL: {
                 uint16_t index = READ_WORD_IP(vm);
                 obj_string_t* name = AS_STRING(vm->bytecode.pool.data[index]);
-                value_t val = peek(&vm->op_stack);
+                value_t val = peek(&vm->op_stack, 1);
                 hash_map_update(&vm->global_var, name, val);
                 break;
             }
@@ -438,15 +438,17 @@ interpret_result_t interpret(vm_t* vm)
                 obj_class_t* class = AS_CLASS(vm->bytecode.pool.data[READ_WORD_IP(vm)]);
                 hash_map_t fields;
                 init_hash_map(&fields);
+                // Values are only peaked, so the GC can reach them
                 for (ssize_t i = class->size - 1; i >= 0; -- i) {
-                    hash_map_insert(&fields, class->fields[i], pop(&vm->op_stack), vm);
+                    hash_map_insert(&fields, class->fields[i], peek(&vm->op_stack, class->size - i), vm);
                 }
-                // POP NEEDS TO BE DONE AFTER.
-                // If it was done before, the GC could potentially collect the extends value before the object
-                // was created.
-                value_t extends = peek(&vm->op_stack);
+                value_t extends = peek(&vm->op_stack, class->size + 1);
                 value_t instance = OBJ_INSTANCE_VAL(class, fields, extends, vm);
-                pop(&vm->op_stack);
+
+                // If we had some asynchronnous GC this could be a problematic part
+                for (size_t i = 0; i < class->size + 1; ++ i) {
+                    pop(&vm->op_stack);
+                }
                 push(vm, instance);
                 break;
             }

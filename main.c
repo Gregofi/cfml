@@ -5,7 +5,7 @@
 #include "include/buddy_alloc.h"
 
 #define MEGABYTES(val) ((val) * 1024UL * 1024UL)
-#define MEMORY MEGABYTES(1)
+#define MEMORY MEGABYTES(2500)
 
 int main(int argc, const char* argv[]) {
     if (argc < 3) {

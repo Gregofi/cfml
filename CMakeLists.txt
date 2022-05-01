@@ -7,7 +7,7 @@ set(CMAKE_C_COMPILER gcc)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -I${PROJECT_SOURCE_DIR}")
 
-set(CMAKE_C_FLAGS_DEBUG "-Wall -Wextra -pedantic -g -fsanitize=address -D__SYSTEM_MEMORY__ -D__STRESS_GC__ -D__DEBUG_GC__")
+set(CMAKE_C_FLAGS_DEBUG "-Wall -Wextra -pedantic -g -fsanitize=address")
 set(CMAKE_C_FLAGS_RELEASE "-O3")
 
 add_executable(fml main.c src/serializer.c src/bytecode.c src/dissasembler.c src/memory.c src/vm.c src/constant.c src/buddy_alloc.c src/hashmap.c)
