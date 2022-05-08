@@ -22,7 +22,7 @@ void push_frame(vm_t* vm, uint8_t* ip) {
     call_frames_t* call_frames = &vm->frames;
     if (call_frames->length >= call_frames->capacity) {
         call_frames->capacity = NEW_CAPACITY(call_frames->capacity);
-        call_frames->frames = realloc_with_gc(call_frames->frames, sizeof(*call_frames->frames) * call_frames->capacity, vm);
+        call_frames->frames = realloc(call_frames->frames, sizeof(*call_frames->frames) * call_frames->capacity);
     }
 
     for(size_t i = 0; i < MAX_LOCALS; ++ i) {
@@ -44,7 +44,7 @@ void init_frames(call_frames_t* call_frames)
 
 void free_frames(call_frames_t* call_frames)
 {
-    heap_free(call_frames->frames);
+    free(call_frames->frames);
     init_frames(call_frames);
 }
 
@@ -57,7 +57,7 @@ void init_stack(op_stack_t* stack)
 
 void free_stack(op_stack_t* stack)
 {
-    heap_free(stack->data);
+    free(stack->data);
 }
 
 void push(vm_t* vm, value_t c)
@@ -65,7 +65,7 @@ void push(vm_t* vm, value_t c)
     op_stack_t* stack = &vm->op_stack;
     if (stack->size >= stack->capacity) {
         stack->capacity = NEW_CAPACITY(stack->capacity);
-        stack->data = realloc_with_gc(stack->data, stack->capacity * sizeof(*stack->data), vm);
+        stack->data = realloc(stack->data, stack->capacity * sizeof(*stack->data));
     }
 
     stack->data[stack->size++] = c;
@@ -440,7 +440,7 @@ interpret_result_t interpret(vm_t* vm)
                 init_hash_map(&fields);
                 // Values are only peaked, so the GC can reach them
                 for (ssize_t i = class->size - 1; i >= 0; -- i) {
-                    hash_map_insert(&fields, class->fields[i], peek(&vm->op_stack, class->size - i), vm);
+                    hash_map_insert(&fields, class->fields[i], peek(&vm->op_stack, class->size - i));
                 }
                 value_t extends = peek(&vm->op_stack, class->size + 1);
                 value_t instance = OBJ_INSTANCE_VAL(class, fields, extends, vm);

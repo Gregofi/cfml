@@ -16,9 +16,9 @@ TEST(basicTest) {
     obj_string_t* str1 = build_obj_string(4, "abcd", hash_string("abcd"), &vm);
     obj_string_t* str2 = build_obj_string(4, "xyz", hash_string("xyz"), &vm);
     obj_string_t* str3 = build_obj_string(4, "uiop", hash_string("uiop"), &vm);
-    hash_map_insert(&hm, str1, a, &vm);
-    hash_map_insert(&hm, str2, b, &vm);
-    hash_map_insert(&hm, str3, c, &vm);
+    hash_map_insert(&hm, str1, a);
+    hash_map_insert(&hm, str2, b);
+    hash_map_insert(&hm, str3, c);
 
     ASSERT_W(hm.count == 3);
 
@@ -69,7 +69,7 @@ TEST(reallocationTest) {
     }
 
     for (size_t i = 0; i < SIZE; ++ i) {
-        hash_map_insert(&hm, strings[i], vals[i], &vm);
+        hash_map_insert(&hm, strings[i], vals[i]);
     }
 
     for (size_t i = 0; i < SIZE; ++ i) {

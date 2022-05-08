@@ -35,7 +35,7 @@ static void init_pending(globals_pending_t* globals) {
 static void push_pending(globals_pending_t* globals, int value, vm_t* vm) {
     if (globals->capacity <= globals->size) {
         globals->capacity = NEW_CAPACITY(globals->capacity);
-        globals->data = realloc_with_gc(globals->data, globals->capacity * sizeof(*globals->data), vm);
+        globals->data = realloc(globals->data, globals->capacity * sizeof(*globals->data));
     }
     globals->data[globals->size++] = value;
 }
@@ -185,7 +185,7 @@ static size_t_pair_t parse_bytecode(uint8_t* bytecode, size_t instruction_count,
             // Special cases
             case OP_LABEL: {
                 obj_string_t* str = AS_STRING(vm->bytecode.pool.data[READ_2BYTES(bytecode + byte_size + 1)]);
-                hash_map_insert(labels, str, INTEGER_VAL(vm->bytecode.size), vm);
+                hash_map_insert(labels, str, INTEGER_VAL(vm->bytecode.size));
                 write_chunk(&vm->bytecode, bytecode[byte_size]);
                 write_chunk(&vm->bytecode, bytecode[byte_size + 1]);
                 write_chunk(&vm->bytecode, bytecode[byte_size + 2]);
@@ -281,7 +281,7 @@ static uint8_t* parse_constant_pool(vm_t* vm, uint8_t *file) {
                     file += 2;
                     if (IS_FUNCTION(chunk->pool.data[index])) {
                         obj_function_t* fun = AS_FUNCTION(chunk->pool.data[index]);
-                        hash_map_insert(&as_class->methods, AS_STRING(chunk->pool.data[fun->name]), chunk->pool.data[index], vm);
+                        hash_map_insert(&as_class->methods, AS_STRING(chunk->pool.data[fun->name]), chunk->pool.data[index]);
                     } else if (IS_SLOT(chunk->pool.data[index])) {
                         obj_slot_t* slot = AS_SLOT(chunk->pool.data[index]);
                         obj_string_t* name = AS_STRING(chunk->pool.data[slot->index]);
@@ -318,9 +318,9 @@ static uint8_t* parse_constant_pool(vm_t* vm, uint8_t *file) {
     for (size_t i = 0; i < pending.size; ++i) {
         value_t val = chunk->pool.data[pending.data[i]];
         if (IS_SLOT(val)) {
-            hash_map_insert(&vm->global_var, AS_STRING(chunk->pool.data[AS_SLOT(val)->index]), NULL_VAL, vm);
+            hash_map_insert(&vm->global_var, AS_STRING(chunk->pool.data[AS_SLOT(val)->index]), NULL_VAL);
         } else if (IS_FUNCTION(val)) {
-            hash_map_insert(&vm->global_var, AS_STRING(chunk->pool.data[AS_FUNCTION(val)->name]), val, vm);
+            hash_map_insert(&vm->global_var, AS_STRING(chunk->pool.data[AS_FUNCTION(val)->name]), val);
         } else {
             fprintf(stderr, "Unknown object in globals pending.\n");
             dissasemble_value(stderr, val);
